@@ -10,6 +10,7 @@ namespace fgui {
         private _frame: GComponent;
         private _modal: boolean;
 
+        private _atlases: Array<Array<number>>;
         private _uiSources?: Array<IUISource>;
         private _inited?: boolean;
         private _loading?: boolean;
@@ -20,6 +21,7 @@ namespace fgui {
 
         public constructor() {
             super();
+            this._atlases = new Array<Array<number>>();
             this._uiSources = new Array<IUISource>();
             this.bringToFontOnClick = UIConfig.bringWindowToFrontOnClick;
 
@@ -29,6 +31,12 @@ namespace fgui {
         public addUISource(source: IUISource): void {
             this._uiSources.push(source);
         }
+        /**
+         * atlases值是一个二维数组，元素为当前window在该元素索引对应的uiSource执行加载的包中所使用的纹理图集列表
+         * @example [[0,1],[2]]，说明此windwo依赖了2个包，第一个包使用其中第0、第1张图集，第二包使用第2张图集
+         */
+        public get atlases(): number[][] { return this._atlases; }
+        public set atlases(va: number[][]) { this._atlases = va; }
 
         public set contentPane(val: GComponent) {
             if (this._contentPane != val) {
@@ -203,8 +211,9 @@ namespace fgui {
                 var cnt: number = this._uiSources.length;
                 for (var i: number = 0; i < cnt; i++) {
                     var lib: IUISource = this._uiSources[i];
+                    let ats: number[] = this._atlases[i];
                     if (!lib.loaded) {
-                        lib.load(this.__uiLoadComplete, this);
+                        lib.load(this.__uiLoadComplete, this, ats);
                         this._loading = true;
                     }
                 }

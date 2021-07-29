@@ -1503,7 +1503,7 @@ declare namespace fgui {
     interface IUISource {
         fileName: string;
         loaded: boolean;
-        load(callback: Function, target: any): void;
+        load(callback: Function, target: any, atlases?: number[]): void;
     }
 }
 declare namespace fgui {
@@ -1929,6 +1929,8 @@ declare namespace fgui {
         private _branches;
         _branchIndex: number;
         private _bundle;
+        private _atlasLoaded;
+        private _tarCount;
         static _constructing: number;
         private static _instById;
         private static _instByName;
@@ -1942,10 +1944,13 @@ declare namespace fgui {
         static getById(id: string): UIPackage;
         static getByName(name: string): UIPackage;
         static addPackage(path: string): UIPackage;
-        static loadPackage(bundle: cc.AssetManager.Bundle, path: string, onComplete?: (error: any, pkg: UIPackage) => void): void;
-        static loadPackage(bundle: cc.AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
-        static loadPackage(path: string, onComplete?: (error: any, pkg: UIPackage) => void): void;
-        static loadPackage(path: string, onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        static loadPackage(bundle: cc.AssetManager.Bundle, path: string, atlases: number[], onComplete?: (error: any, pkg: UIPackage) => void): void;
+        static loadPackage(bundle: cc.AssetManager.Bundle, path: string, atlases: number[], onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        static loadPackage(path: string, atlases: number[], onComplete?: (error: any, pkg: UIPackage) => void): void;
+        static loadPackage(path: string, atlases: number[], onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        private addLoaded;
+        private get finished();
+        private getLoadItems;
         static removePackage(packageIdOrName: string): void;
         static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject;
         static createObjectFromURL(url: string, userClass?: new () => GObject): GObject;
@@ -1983,6 +1988,7 @@ declare namespace fgui {
         private _contentArea;
         private _frame;
         private _modal;
+        private _atlases;
         private _uiSources?;
         private _inited?;
         private _loading?;
@@ -1990,6 +1996,8 @@ declare namespace fgui {
         bringToFontOnClick: boolean;
         constructor();
         addUISource(source: IUISource): void;
+        get atlases(): number[][];
+        set atlases(va: number[][]);
         set contentPane(val: GComponent);
         get contentPane(): GComponent;
         get frame(): GComponent;

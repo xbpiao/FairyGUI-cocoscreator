@@ -1,7 +1,12 @@
 
 namespace fgui {
     type PackageDependency = { id: string, name: string };
-
+    interface ITarCount {
+        /**已加载的 */
+        loaded?: number;
+        /**未加载的 */
+        unload?: number;
+    }
     export class UIPackage {
         private _id: string;
         private _name: string;
@@ -14,6 +19,10 @@ namespace fgui {
         private _branches: Array<string>;
         public _branchIndex: number;
         private _bundle: cc.AssetManager.Bundle;
+        /**已下载文件url记录 */
+        private _atlasLoaded: { [key: string]: boolean };
+        /**分别记录当前包所有需要统计的文件数量，以及已经加载成功的文件数量 */
+        private _tarCount: ITarCount;
 
         public static _constructing: number = 0;
 
@@ -30,6 +39,8 @@ namespace fgui {
             this._dependencies = [];
             this._branches = [];
             this._branchIndex = -1;
+            this._atlasLoaded = {};
+            this._tarCount = { loaded: 0, unload: 0 };
         }
 
         public static get branch(): string {
@@ -93,7 +104,7 @@ namespace fgui {
          * @param path 资源相对 Asset Bundle 目录的路径.
          * @param onComplete 载入成功后的回调.
          */
-        public static loadPackage(bundle: cc.AssetManager.Bundle, path: string, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        public static loadPackage(bundle: cc.AssetManager.Bundle, path: string, atlases: number[], onComplete?: (error: any, pkg: UIPackage) => void): void;
         /**
          * 载入一个包。包的资源从Asset Bundle加载.
          * @param bundle Asset Bundle 对象.
@@ -101,28 +112,40 @@ namespace fgui {
          * @param onProgress 加载进度回调.
          * @param onComplete 载入成功后的回调.
          */
-        public static loadPackage(bundle: cc.AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        public static loadPackage(bundle: cc.AssetManager.Bundle, path: string, atlases: number[], onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
         /**
          * 载入一个包。包的资源从resources加载.
          * @param path 资源相对 resources 的路径.
          * @param onComplete 载入成功后的回调.
          */
-        public static loadPackage(path: string, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        public static loadPackage(path: string, atlases: number[], onComplete?: (error: any, pkg: UIPackage) => void): void;
         /**
          * 载入一个包。包的资源从resources加载.
          * @param path 资源相对 resources 的路径.
          * @param onProgress 加载进度回调.
          * @param onComplete 载入成功后的回调.
          */
-        public static loadPackage(path: string, onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
+        public static loadPackage(path: string, atlases: number[], onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
         public static loadPackage(...args: any[]) {
             let path: string;
             let onProgress: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void;
             let onComplete: (error: any, pkg: UIPackage) => void;
             let bundle: cc.AssetManager.Bundle;
+            let atlases: number[];
             if (args[0] instanceof cc.AssetManager.Bundle) {
                 bundle = args[0];
                 path = args[1];
+                atlases = args[2];
+                if (args.length > 4) {
+                    onProgress = args[3];
+                    onComplete = args[4];
+                }
+                else
+                    onComplete = args[3];
+            }
+            else {
+                path = args[0];
+                atlases = args[1];
                 if (args.length > 3) {
                     onProgress = args[2];
                     onComplete = args[3];
@@ -130,18 +153,43 @@ namespace fgui {
                 else
                     onComplete = args[2];
             }
-            else {
-                path = args[0];
-                if (args.length > 2) {
-                    onProgress = args[1];
-                    onComplete = args[2];
-                }
-                else
-                    onComplete = args[1];
-            }
-
             bundle = bundle || cc.resources;
-            bundle.load(path, cc.BufferAsset, onProgress, function (err, asset: any) {
+            let name = path.substring(path.lastIndexOf("/"));
+            let pkg = UIPackage.getByName(name);
+            let total: number = 0;
+            let lastErr: any;
+            let taskComplete = (err?: any, item?: any) => {
+                total--;
+                if (err) {
+                    lastErr = err;
+                } else if (!!item) {
+                    pkg.addLoaded(item);
+                }
+
+                if (total <= 0 && !!onComplete) {
+                    onComplete(lastErr, pkg);
+                }
+            }
+            let loadRes = (pkg: UIPackage): void => {
+                const items = pkg.getLoadItems(atlases);
+                total = items.length;
+                if (total > 0) {
+                    items.forEach((item, index) => {
+                        bundle.load(item.url, item.type, (a, b, c) => {
+                            onProgress(index, items.length, c);
+                        }, (err, asset) => {
+                            taskComplete(err, item);
+                        });
+                    });
+                } else {
+                    taskComplete();
+                }
+            }
+            if (!!pkg) {
+                loadRes(pkg);
+                return;
+            } 
+            bundle.load(path, cc.BufferAsset, (err, asset: any) => {
                 if (err) {
                     if (onComplete != null)
                         onComplete(err, null);
@@ -151,44 +199,50 @@ namespace fgui {
                 let pkg: UIPackage = new UIPackage();
                 pkg._bundle = bundle;
                 pkg.loadPackage(new ByteBuffer(asset._buffer), path);
-                let cnt: number = pkg._items.length;
-                let urls: Array<string> = [];
-                let types: Array<typeof cc.Asset> = [];
-                for (var i: number = 0; i < cnt; i++) {
-                    var pi: PackageItem = pkg._items[i];
-                    if (pi.type == PackageItemType.Atlas || pi.type == PackageItemType.Sound) {
-                        let assetType = ItemTypeToAssetType[pi.type];
-                        urls.push(pi.file);
-                        types.push(assetType);
-                    }
+                UIPackage._instById[pkg.id] = pkg;
+                UIPackage._instByName[pkg.name] = pkg;
+                if (pkg._path) {
+                    UIPackage._instById[pkg._path] = pkg;
                 }
-
-                let total = urls.length;
-                let lastErr;
-                let taskComplete = (err?) => {
-                    total--;
-                    if (err)
-                        lastErr = err;
-
-                    if (total <= 0) {
-                        UIPackage._instById[pkg.id] = pkg;
-                        UIPackage._instByName[pkg.name] = pkg;
-                        if (pkg._path)
-                            UIPackage._instById[pkg._path] = pkg;
-
-                        if (onComplete != null)
-                            onComplete(lastErr, pkg);
-                    }
-                }
-
-                if (total > 0) {
-                    urls.forEach((url, index) => {
-                        bundle.load(url, types[index], onProgress, taskComplete);
-                    });
-                }
-                else
-                    taskComplete();
+                loadRes(pkg);
             });
+        }
+
+        private addLoaded(item: { url: string, type: typeof cc.Asset }): void {
+            this._atlasLoaded[item.url] = true;
+            this._tarCount.loaded++;
+        }
+
+        private get finished(): boolean {
+            return this._tarCount.unload <= this._tarCount.loaded;
+        }
+
+        private getLoadItems(atlases: number[]): { url: string, type: typeof cc.Asset }[] {
+            const itms = [];
+            const items = this._items;
+            items.forEach((pi, idx) => {
+                let file = pi.file;
+                if (this._atlasLoaded[file]) {
+                    return;
+                }
+                if (pi.type == PackageItemType.Sound) {
+                    this._tarCount.unload += 1;
+                    itms.push({url: file, type: ItemTypeToAssetType[pi.type]});
+                    return;
+                }
+                if (pi.type == PackageItemType.Atlas) {
+                    this._tarCount.unload += 1;
+                    if (!atlases || !atlases.length) {
+                        itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
+                        return;
+                    }
+                    const index = parseInt(file.substring(file.length - 1));
+                    if (atlases.indexOf(index) >= 0) {
+                        itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
+                    }
+                }
+            });
+            return itms;
         }
 
         public static removePackage(packageIdOrName: string): void {
@@ -498,6 +552,9 @@ namespace fgui {
         }
 
         public dispose(): void {
+            this._atlasLoaded = {};
+            this._tarCount.loaded = 0;
+            this._tarCount.unload = 0;
             var cnt: number = this._items.length;
             for (var i: number = 0; i < cnt; i++) {
                 var pi: PackageItem = this._items[i];

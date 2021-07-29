@@ -7885,8 +7885,13 @@ window.__extends = (this && this.__extends) || (function () {
             this.updateLayout();
         };
         GLoader3D.prototype.onChange = function () {
-            this.onChangeSpine();
-            this.onChangeDragonBones();
+            var type = this._contentItem.type;
+            if (type == fgui.PackageItemType.Spine) {
+                this.onChangeSpine();
+            }
+            else if (type == fgui.PackageItemType.DragonBones) {
+                this.onChangeDragonBones();
+            }
         };
         GLoader3D.prototype.onChangeSpine = function () {
             if (!(this._content instanceof sp.Skeleton))
@@ -14558,6 +14563,8 @@ window.__extends = (this && this.__extends) || (function () {
             this._dependencies = [];
             this._branches = [];
             this._branchIndex = -1;
+            this._atlasLoaded = {};
+            this._tarCount = { loaded: 0, unload: 0 };
         }
         Object.defineProperty(UIPackage, "branch", {
             get: function () {
@@ -14613,9 +14620,21 @@ window.__extends = (this && this.__extends) || (function () {
             var onProgress;
             var onComplete;
             var bundle;
+            var atlases;
             if (args[0] instanceof cc.AssetManager.Bundle) {
                 bundle = args[0];
                 path = args[1];
+                atlases = args[2];
+                if (args.length > 4) {
+                    onProgress = args[3];
+                    onComplete = args[4];
+                }
+                else
+                    onComplete = args[3];
+            }
+            else {
+                path = args[0];
+                atlases = args[1];
                 if (args.length > 3) {
                     onProgress = args[2];
                     onComplete = args[3];
@@ -14623,17 +14642,44 @@ window.__extends = (this && this.__extends) || (function () {
                 else
                     onComplete = args[2];
             }
-            else {
-                path = args[0];
-                if (args.length > 2) {
-                    onProgress = args[1];
-                    onComplete = args[2];
-                }
-                else
-                    onComplete = args[1];
-            }
             bundle = bundle || cc.resources;
-            bundle.load(path, cc.BufferAsset, onProgress, function (err, asset) {
+            var name = path.substring(path.lastIndexOf("/"));
+            var pkg = UIPackage.getByName(name);
+            var total = 0;
+            var lastErr;
+            var taskComplete = function (err, item) {
+                total--;
+                if (err) {
+                    lastErr = err;
+                }
+                else if (!!item) {
+                    pkg.addLoaded(item);
+                }
+                if (total <= 0 && !!onComplete) {
+                    onComplete(lastErr, pkg);
+                }
+            };
+            var loadRes = function (pkg) {
+                var items = pkg.getLoadItems(atlases);
+                total = items.length;
+                if (total > 0) {
+                    items.forEach(function (item, index) {
+                        bundle.load(item.url, item.type, function (a, b, c) {
+                            onProgress(index, items.length, c);
+                        }, function (err, asset) {
+                            taskComplete(err, item);
+                        });
+                    });
+                }
+                else {
+                    taskComplete();
+                }
+            };
+            if (!!pkg) {
+                loadRes(pkg);
+                return;
+            }
+            bundle.load(path, cc.BufferAsset, function (err, asset) {
                 if (err) {
                     if (onComplete != null)
                         onComplete(err, null);
@@ -14642,40 +14688,52 @@ window.__extends = (this && this.__extends) || (function () {
                 var pkg = new UIPackage();
                 pkg._bundle = bundle;
                 pkg.loadPackage(new fgui.ByteBuffer(asset._buffer), path);
-                var cnt = pkg._items.length;
-                var urls = [];
-                var types = [];
-                for (var i = 0; i < cnt; i++) {
-                    var pi = pkg._items[i];
-                    if (pi.type == fgui.PackageItemType.Atlas || pi.type == fgui.PackageItemType.Sound) {
-                        var assetType = ItemTypeToAssetType[pi.type];
-                        urls.push(pi.file);
-                        types.push(assetType);
-                    }
+                UIPackage._instById[pkg.id] = pkg;
+                UIPackage._instByName[pkg.name] = pkg;
+                if (pkg._path) {
+                    UIPackage._instById[pkg._path] = pkg;
                 }
-                var total = urls.length;
-                var lastErr;
-                var taskComplete = function (err) {
-                    total--;
-                    if (err)
-                        lastErr = err;
-                    if (total <= 0) {
-                        UIPackage._instById[pkg.id] = pkg;
-                        UIPackage._instByName[pkg.name] = pkg;
-                        if (pkg._path)
-                            UIPackage._instById[pkg._path] = pkg;
-                        if (onComplete != null)
-                            onComplete(lastErr, pkg);
-                    }
-                };
-                if (total > 0) {
-                    urls.forEach(function (url, index) {
-                        bundle.load(url, types[index], onProgress, taskComplete);
-                    });
-                }
-                else
-                    taskComplete();
+                loadRes(pkg);
             });
+        };
+        UIPackage.prototype.addLoaded = function (item) {
+            this._atlasLoaded[item.url] = true;
+            this._tarCount.loaded++;
+        };
+        Object.defineProperty(UIPackage.prototype, "finished", {
+            get: function () {
+                return this._tarCount.unload <= this._tarCount.loaded;
+            },
+            enumerable: false,
+            configurable: true
+        });
+        UIPackage.prototype.getLoadItems = function (atlases) {
+            var _this = this;
+            var itms = [];
+            var items = this._items;
+            items.forEach(function (pi, idx) {
+                var file = pi.file;
+                if (_this._atlasLoaded[file]) {
+                    return;
+                }
+                if (pi.type == fgui.PackageItemType.Sound) {
+                    _this._tarCount.unload += 1;
+                    itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
+                    return;
+                }
+                if (pi.type == fgui.PackageItemType.Atlas) {
+                    _this._tarCount.unload += 1;
+                    if (!atlases || !atlases.length) {
+                        itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
+                        return;
+                    }
+                    var index = parseInt(file.substring(file.length - 1));
+                    if (atlases.indexOf(index) >= 0) {
+                        itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
+                    }
+                }
+            });
+            return itms;
         };
         UIPackage.removePackage = function (packageIdOrName) {
             var pkg = UIPackage._instById[packageIdOrName];
@@ -14934,6 +14992,9 @@ window.__extends = (this && this.__extends) || (function () {
             }
         };
         UIPackage.prototype.dispose = function () {
+            this._atlasLoaded = {};
+            this._tarCount.loaded = 0;
+            this._tarCount.unload = 0;
             var cnt = this._items.length;
             for (var i = 0; i < cnt; i++) {
                 var pi = this._items[i];
@@ -15247,6 +15308,7 @@ window.__extends = (this && this.__extends) || (function () {
         function Window() {
             var _this = _super.call(this) || this;
             _this._requestingCmd = 0;
+            _this._atlases = new Array();
             _this._uiSources = new Array();
             _this.bringToFontOnClick = fgui.UIConfig.bringWindowToFrontOnClick;
             _this._node.on(fgui.Event.TOUCH_BEGIN, _this.onTouchBegin_1, _this, true);
@@ -15255,6 +15317,12 @@ window.__extends = (this && this.__extends) || (function () {
         Window.prototype.addUISource = function (source) {
             this._uiSources.push(source);
         };
+        Object.defineProperty(Window.prototype, "atlases", {
+            get: function () { return this._atlases; },
+            set: function (va) { this._atlases = va; },
+            enumerable: false,
+            configurable: true
+        });
         Object.defineProperty(Window.prototype, "contentPane", {
             get: function () {
                 return this._contentPane;
@@ -15432,8 +15500,9 @@ window.__extends = (this && this.__extends) || (function () {
                 var cnt = this._uiSources.length;
                 for (var i = 0; i < cnt; i++) {
                     var lib = this._uiSources[i];
+                    var ats = this._atlases[i];
                     if (!lib.loaded) {
-                        lib.load(this.__uiLoadComplete, this);
+                        lib.load(this.__uiLoadComplete, this, ats);
                         this._loading = true;
                     }
                 }
