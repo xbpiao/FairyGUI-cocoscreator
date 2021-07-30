@@ -14647,7 +14647,7 @@ window.__extends = (this && this.__extends) || (function () {
             var pkg = UIPackage.getByName(name);
             var total = 0;
             var lastErr;
-            var taskComplete = function (err, item) {
+            var taskComplete = function (pkg, err, item) {
                 total--;
                 if (err) {
                     lastErr = err;
@@ -14667,12 +14667,12 @@ window.__extends = (this && this.__extends) || (function () {
                         bundle.load(item.url, item.type, function (a, b, c) {
                             onProgress(index, items.length, c);
                         }, function (err, asset) {
-                            taskComplete(err, item);
+                            taskComplete(pkg, err, item);
                         });
                     });
                 }
                 else {
-                    taskComplete();
+                    taskComplete(pkg);
                 }
             };
             if (!!pkg) {

@@ -158,7 +158,7 @@ namespace fgui {
             let pkg = UIPackage.getByName(name);
             let total: number = 0;
             let lastErr: any;
-            let taskComplete = (err?: any, item?: any) => {
+            let taskComplete = (pkg: UIPackage, err?: any, item?: any) => {
                 total--;
                 if (err) {
                     lastErr = err;
@@ -178,11 +178,11 @@ namespace fgui {
                         bundle.load(item.url, item.type, (a, b, c) => {
                             onProgress(index, items.length, c);
                         }, (err, asset) => {
-                            taskComplete(err, item);
+                            taskComplete(pkg, err, item);
                         });
                     });
                 } else {
-                    taskComplete();
+                    taskComplete(pkg);
                 }
             }
             if (!!pkg) {
