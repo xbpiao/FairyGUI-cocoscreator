@@ -38,6 +38,8 @@ namespace fgui {
         public get atlases(): number[][] { return this._atlases; }
         public set atlases(va: number[][]) { this._atlases = va; }
 
+        public get loading(): boolean { return this._loading; }
+
         public set contentPane(val: GComponent) {
             if (this._contentPane != val) {
                 if (this._contentPane)
@@ -214,6 +216,8 @@ namespace fgui {
                     let ats: number[] = this._atlases[i];
                     if (!lib.loaded) {
                         lib.load(this.__uiLoadComplete, this, ats);
+                        lib.failed = false;
+                        lib.fail(this.__uiLoadFail, this);
                         this._loading = true;
                     }
                 }
@@ -231,6 +235,10 @@ namespace fgui {
         protected onShown(): void {
         }
 
+        protected onShowFail(): void {
+            this.hideImmediately();
+        }
+
         protected onHide(): void {
         }
 
@@ -242,11 +250,26 @@ namespace fgui {
             this.hideImmediately();
         }
 
+        private __uiLoadFail(): void {
+            if (!this._loading) {
+                return;
+            }
+            const cnt = this._uiSources.length;
+            for (let i = 0; i < cnt; i++) {
+                const lib = this._uiSources[i];
+                if (lib.failed) {
+                    this._loading = false;
+                    this.onShowFail();
+                    break;
+                }
+            }
+        }
+
         private __uiLoadComplete(): void {
             var cnt: number = this._uiSources.length;
             for (var i: number = 0; i < cnt; i++) {
                 var lib: IUISource = this._uiSources[i];
-                if (!lib.loaded)
+                if (!lib.succeed)
                     return;
             }
 

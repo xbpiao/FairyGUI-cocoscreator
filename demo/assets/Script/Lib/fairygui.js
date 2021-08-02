@@ -15323,6 +15323,11 @@ window.__extends = (this && this.__extends) || (function () {
             enumerable: false,
             configurable: true
         });
+        Object.defineProperty(Window.prototype, "loading", {
+            get: function () { return this._loading; },
+            enumerable: false,
+            configurable: true
+        });
         Object.defineProperty(Window.prototype, "contentPane", {
             get: function () {
                 return this._contentPane;
@@ -15503,6 +15508,8 @@ window.__extends = (this && this.__extends) || (function () {
                     var ats = this._atlases[i];
                     if (!lib.loaded) {
                         lib.load(this.__uiLoadComplete, this, ats);
+                        lib.failed = false;
+                        lib.fail(this.__uiLoadFail, this);
                         this._loading = true;
                     }
                 }
@@ -15516,6 +15523,9 @@ window.__extends = (this && this.__extends) || (function () {
         };
         Window.prototype.onShown = function () {
         };
+        Window.prototype.onShowFail = function () {
+            this.hideImmediately();
+        };
         Window.prototype.onHide = function () {
         };
         Window.prototype.doShowAnimation = function () {
@@ -15524,11 +15534,25 @@ window.__extends = (this && this.__extends) || (function () {
         Window.prototype.doHideAnimation = function () {
             this.hideImmediately();
         };
+        Window.prototype.__uiLoadFail = function () {
+            if (!this._loading) {
+                return;
+            }
+            var cnt = this._uiSources.length;
+            for (var i = 0; i < cnt; i++) {
+                var lib = this._uiSources[i];
+                if (lib.failed) {
+                    this._loading = false;
+                    this.onShowFail();
+                    break;
+                }
+            }
+        };
         Window.prototype.__uiLoadComplete = function () {
             var cnt = this._uiSources.length;
             for (var i = 0; i < cnt; i++) {
                 var lib = this._uiSources[i];
-                if (!lib.loaded)
+                if (!lib.succeed)
                     return;
             }
             this._loading = false;

@@ -1503,7 +1503,10 @@ declare namespace fgui {
     interface IUISource {
         fileName: string;
         loaded: boolean;
+        failed: boolean;
+        succeed: boolean;
         load(callback: Function, target: any, atlases?: number[]): void;
+        fail(callback: Function, target: any): void;
     }
 }
 declare namespace fgui {
@@ -1998,6 +2001,7 @@ declare namespace fgui {
         addUISource(source: IUISource): void;
         get atlases(): number[][];
         set atlases(va: number[][]);
+        get loading(): boolean;
         set contentPane(val: GComponent);
         get contentPane(): GComponent;
         get frame(): GComponent;
@@ -2025,9 +2029,11 @@ declare namespace fgui {
         init(): void;
         protected onInit(): void;
         protected onShown(): void;
+        protected onShowFail(): void;
         protected onHide(): void;
         protected doShowAnimation(): void;
         protected doHideAnimation(): void;
+        private __uiLoadFail;
         private __uiLoadComplete;
         private _init;
         dispose(): void;
