@@ -356,10 +356,11 @@ namespace fgui {
 
         public ensureSizeCorrect(): void {
             if (this._sizeDirty) {
-                if (this._label["_forceUpdateRenderData"]) //2.1 above
+                if (this._label["_forceUpdateRenderData"]) {
                     this._label["_forceUpdateRenderData"]();
-                else
-                    this._label["_updateRenderData"](true);
+                } else {
+                    // this._label["_updateRenderData"](true);
+                }
                 this._sizeDirty = false;
             }
         }
