@@ -8439,6 +8439,7 @@ window.__extends = (this && this.__extends) || (function () {
         }
         GTextField.prototype.createRenderer = function () {
             this._label = this._node.addComponent(cc.Label);
+            this._label.cacheMode = cc.Label.CacheMode.NONE;
             this.autoSize = fgui.AutoSizeType.Both;
         };
         Object.defineProperty(GTextField.prototype, "text", {
@@ -8776,10 +8777,11 @@ window.__extends = (this && this.__extends) || (function () {
         });
         GTextField.prototype.ensureSizeCorrect = function () {
             if (this._sizeDirty) {
-                if (this._label["_forceUpdateRenderData"])
+                if (this._label["_forceUpdateRenderData"]) {
                     this._label["_forceUpdateRenderData"]();
-                else
-                    this._label["_updateRenderData"](true);
+                }
+                else {
+                }
                 this._sizeDirty = false;
             }
         };

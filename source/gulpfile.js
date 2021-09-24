@@ -24,7 +24,7 @@ gulp.task("buildDts", () => {
 
 gulp.task("copy", () => {
     return gulp.src('bin/**/*')
-        .pipe(gulp.dest('../demo/assets/Script/Lib/'))
+        .pipe(gulp.dest('../../../k7/s-fox/platform-js/3th/'))
 });
 
 gulp.task('build', gulp.series(

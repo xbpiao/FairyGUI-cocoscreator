@@ -43,6 +43,7 @@ namespace fgui {
 
         protected createRenderer() {
             this._label = this._node.addComponent(cc.Label);
+            this._label.cacheMode = cc.Label.CacheMode.NONE;
             this.autoSize = AutoSizeType.Both;
         }
 
