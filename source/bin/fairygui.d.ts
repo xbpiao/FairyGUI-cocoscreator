@@ -1952,7 +1952,8 @@ declare namespace fgui {
         static loadPackage(path: string, atlases: number[], onComplete?: (error: any, pkg: UIPackage) => void): void;
         static loadPackage(path: string, atlases: number[], onProgress?: (finish: number, total: number, item: cc.AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
         private addLoaded;
-        private get finished();
+        private addFailed;
+        get finished(): boolean;
         private getLoadItems;
         static removePackage(packageIdOrName: string): void;
         static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject;

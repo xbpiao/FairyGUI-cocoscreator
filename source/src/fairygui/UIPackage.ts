@@ -162,8 +162,9 @@ namespace fgui {
                 total--;
                 if (err) {
                     lastErr = err;
-                } else if (!!item) {
-                    pkg.addLoaded(item);
+                    item && pkg.addFailed(item);
+                } else {
+                    item && pkg.addLoaded(item);
                 }
 
                 if (total <= 0 && !!onComplete) {
@@ -213,7 +214,11 @@ namespace fgui {
             this._tarCount.loaded++;
         }
 
-        private get finished(): boolean {
+        private addFailed(item: { url: string, type: typeof cc.Asset }): void {
+            this._atlasLoaded[item.url] = false;
+        }
+
+        public get finished(): boolean {
             return this._tarCount.unload <= this._tarCount.loaded;
         }
 
@@ -222,16 +227,17 @@ namespace fgui {
             const items = this._items;
             items.forEach((pi, idx) => {
                 let file = pi.file;
-                if (this._atlasLoaded[file]) {
+                const loaded = this._atlasLoaded[file];
+                if (loaded) {
                     return;
                 }
                 if (pi.type == PackageItemType.Sound) {
-                    this._tarCount.unload += 1;
+                    loaded === undefined && (this._tarCount.unload += 1);
                     itms.push({url: file, type: ItemTypeToAssetType[pi.type]});
                     return;
                 }
                 if (pi.type == PackageItemType.Atlas) {
-                    this._tarCount.unload += 1;
+                    loaded === undefined && (this._tarCount.unload += 1);
                     if (!atlases || !atlases.length) {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                         return;

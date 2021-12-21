@@ -14653,9 +14653,10 @@ window.__extends = (this && this.__extends) || (function () {
                 total--;
                 if (err) {
                     lastErr = err;
+                    item && pkg.addFailed(item);
                 }
-                else if (!!item) {
-                    pkg.addLoaded(item);
+                else {
+                    item && pkg.addLoaded(item);
                 }
                 if (total <= 0 && !!onComplete) {
                     onComplete(lastErr, pkg);
@@ -14702,6 +14703,9 @@ window.__extends = (this && this.__extends) || (function () {
             this._atlasLoaded[item.url] = true;
             this._tarCount.loaded++;
         };
+        UIPackage.prototype.addFailed = function (item) {
+            this._atlasLoaded[item.url] = false;
+        };
         Object.defineProperty(UIPackage.prototype, "finished", {
             get: function () {
                 return this._tarCount.unload <= this._tarCount.loaded;
@@ -14715,16 +14719,17 @@ window.__extends = (this && this.__extends) || (function () {
             var items = this._items;
             items.forEach(function (pi, idx) {
                 var file = pi.file;
-                if (_this._atlasLoaded[file]) {
+                var loaded = _this._atlasLoaded[file];
+                if (loaded) {
                     return;
                 }
                 if (pi.type == fgui.PackageItemType.Sound) {
-                    _this._tarCount.unload += 1;
+                    loaded === undefined && (_this._tarCount.unload += 1);
                     itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                     return;
                 }
                 if (pi.type == fgui.PackageItemType.Atlas) {
-                    _this._tarCount.unload += 1;
+                    loaded === undefined && (_this._tarCount.unload += 1);
                     if (!atlases || !atlases.length) {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                         return;
