@@ -7885,13 +7885,7 @@ window.__extends = (this && this.__extends) || (function () {
             this.updateLayout();
         };
         GLoader3D.prototype.onChange = function () {
-            var type = this._contentItem.type;
-            if (type == fgui.PackageItemType.Spine) {
-                this.onChangeSpine();
-            }
-            else if (type == fgui.PackageItemType.DragonBones) {
-                this.onChangeDragonBones();
-            }
+            this.onChangeSpine();
         };
         GLoader3D.prototype.onChangeSpine = function () {
             if (!(this._content instanceof sp.Skeleton))

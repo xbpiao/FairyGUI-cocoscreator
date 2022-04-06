@@ -273,12 +273,8 @@ namespace fgui {
         }
 
         private onChange(): void {
-            const type = this._contentItem.type;
-            if (type == PackageItemType.Spine) {
-                this.onChangeSpine();
-            } else if (type == PackageItemType.DragonBones) {
-                this.onChangeDragonBones();
-            }
+            this.onChangeSpine();
+            // this.onChangeDragonBones();
         }
 
         private onChangeSpine(): void {
