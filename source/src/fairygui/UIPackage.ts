@@ -227,17 +227,26 @@ namespace fgui {
             const items = this._items;
             items.forEach((pi, idx) => {
                 let file = pi.file;
+                if (!file) {
+                    return;
+                }
                 const loaded = this._atlasLoaded[file];
                 if (loaded) {
                     return;
                 }
                 if (pi.type == PackageItemType.Sound) {
-                    loaded === undefined && (this._tarCount.unload += 1);
+                    if (loaded === undefined) {
+                        this._atlasLoaded[file] = false;
+                        this._tarCount.unload += 1;
+                    }
                     itms.push({url: file, type: ItemTypeToAssetType[pi.type]});
                     return;
                 }
                 if (pi.type == PackageItemType.Atlas) {
-                    loaded === undefined && (this._tarCount.unload += 1);
+                    if (loaded === undefined) {
+                        this._atlasLoaded[file] = false;
+                        this._tarCount.unload += 1;
+                    }
                     if (!atlases || !atlases.length) {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                         return;

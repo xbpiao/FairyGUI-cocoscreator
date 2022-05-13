@@ -14713,17 +14713,26 @@ window.__extends = (this && this.__extends) || (function () {
             var items = this._items;
             items.forEach(function (pi, idx) {
                 var file = pi.file;
+                if (!file) {
+                    return;
+                }
                 var loaded = _this._atlasLoaded[file];
                 if (loaded) {
                     return;
                 }
                 if (pi.type == fgui.PackageItemType.Sound) {
-                    loaded === undefined && (_this._tarCount.unload += 1);
+                    if (loaded === undefined) {
+                        _this._atlasLoaded[file] = false;
+                        _this._tarCount.unload += 1;
+                    }
                     itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                     return;
                 }
                 if (pi.type == fgui.PackageItemType.Atlas) {
-                    loaded === undefined && (_this._tarCount.unload += 1);
+                    if (loaded === undefined) {
+                        _this._atlasLoaded[file] = false;
+                        _this._tarCount.unload += 1;
+                    }
                     if (!atlases || !atlases.length) {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                         return;
@@ -15511,7 +15520,7 @@ window.__extends = (this && this.__extends) || (function () {
                         lib.load(this.__uiLoadComplete, this, ats);
                         lib.failed = false;
                         lib.fail(this.__uiLoadFail, this);
-                        this._loading = true;
+                        !this._inited && (this._loading = true);
                     }
                 }
                 if (!this._loading)

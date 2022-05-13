@@ -218,7 +218,9 @@ namespace fgui {
                         lib.load(this.__uiLoadComplete, this, ats);
                         lib.failed = false;
                         lib.fail(this.__uiLoadFail, this);
-                        this._loading = true;
+                        // 当一个window所使用的纹理集已被包内其他window加载过时，会导致load全过程不会发起任何异步任务
+                        // 这会最终导致AppWindow先执行hideWaitPanel，后执行showWaitPanel，且执行show时，该window实例的loading值为true
+                        !this._inited && (this._loading = true);
                     }
                 }
 
