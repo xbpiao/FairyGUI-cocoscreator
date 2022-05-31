@@ -223,9 +223,11 @@ namespace fgui {
                         !this._inited && (this._loading = true);
                     }
                 }
-
-                if (!this._loading)
+                // 在lib.load()同步执行的场景下，this._init为true，this._init()已经执行过
+                // 这里不应重复执行
+                if (!this._inited && !this._loading) {
                     this._init();
+                }
             }
             else
                 this._init();

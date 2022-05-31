@@ -15523,8 +15523,9 @@ window.__extends = (this && this.__extends) || (function () {
                         !this._inited && (this._loading = true);
                     }
                 }
-                if (!this._loading)
+                if (!this._inited && !this._loading) {
                     this._init();
+                }
             }
             else
                 this._init();
