@@ -14737,8 +14737,8 @@ window.__extends = (this && this.__extends) || (function () {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                         return;
                     }
-                    var index = parseInt(file.substring(file.length - 1));
-                    if (atlases.indexOf(index) >= 0) {
+                    var clip = file.match(/(\w+_atlas)(\d+)/);
+                    if (clip && atlases.indexOf(parseInt(clip[2])) >= 0) {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                     }
                 }

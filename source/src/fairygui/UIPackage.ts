@@ -251,8 +251,8 @@ namespace fgui {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                         return;
                     }
-                    const index = parseInt(file.substring(file.length - 1));
-                    if (atlases.indexOf(index) >= 0) {
+                    const clip = file.match(/(\w+_atlas)(\d+)/);
+                    if (clip && atlases.indexOf(parseInt(clip[2])) >= 0) {
                         itms.push({ url: file, type: ItemTypeToAssetType[pi.type] });
                     }
                 }
