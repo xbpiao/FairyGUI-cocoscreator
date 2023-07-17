@@ -853,6 +853,7 @@ declare module 'fairygui-cc/GButton' {
         static SELECTED_DISABLED: string;
         constructor();
         get downEffect(): number;
+        set downEffect(value: number);
         get icon(): string | null;
         set icon(value: string | null);
         get selectedIcon(): string | null;

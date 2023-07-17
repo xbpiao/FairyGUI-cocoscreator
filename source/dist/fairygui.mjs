@@ -12995,6 +12995,9 @@ class GButton extends GComponent {
     get downEffect() {
         return this._downEffect;
     }
+    set downEffect(value) {
+        this._downEffect = value;
+    }
     get icon() {
         return this._icon;
     }
