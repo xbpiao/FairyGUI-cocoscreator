@@ -227,7 +227,6 @@ export class GLoader3D extends GObject {
         }
     }
     onChangeSpine() {
-        var _a;
         if (!(this._content instanceof sp.Skeleton))
             return;
         if (this._animationName) {
@@ -246,7 +245,7 @@ export class GLoader3D extends GObject {
         else
             this._content.clearTrack(0);
         let skin = this._skinName || this._content.skeletonData.getRuntimeData().skins[0].name;
-        if (((_a = this._content["_skeleton"].skin) === null || _a === void 0 ? void 0 : _a.name) != skin)
+        if (this._content["_skeleton"].skin != skin)
             this._content.setSkin(skin);
     }
     onChangeDragonBones() {

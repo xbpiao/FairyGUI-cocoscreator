@@ -149,8 +149,8 @@ export default class BasicDemo extends Component {
         var b2 = obj.getChild("n1").asCom;
         let downT = b1.getTransition("down");
         let upT = b1.getTransition("up");
-        b2.addControllerAction("button", upT, ["down"], ["up", "over"]);
-        b2.addControllerAction("button", downT, ["up", "over"], ["down"]);
+        b2.addControllerAction("button", upT, ["down", "selectedOver"], ["up", "over"]);
+        b2.addControllerAction("button", downT, ["up", "over"], ["down", "selectedOver"]);
         
     }
 

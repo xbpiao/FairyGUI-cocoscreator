@@ -1,4 +1,4 @@
-import { gfx, Node, UIRenderer } from "cc";
+import { gfx, Node, RenderComponent } from "cc";
 
 export enum BlendMode {
     Normal,
@@ -18,7 +18,7 @@ export enum BlendMode {
 export class BlendModeUtils {
     public static apply(node: Node, blendMode: BlendMode) {
         let f = factors[<number>blendMode];
-        let renderers = node.getComponentsInChildren(UIRenderer);
+        let renderers = node.getComponentsInChildren(RenderComponent);
         renderers.forEach(element => {
             (<any>element).srcBlendFactor = f[0];
             (<any>element).dstBlendFactor = f[1];
