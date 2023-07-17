@@ -42,6 +42,8 @@ export class GComponent extends GObject {
     public _alignOffset: Vec2;
     public _customMask?: Mask
 
+    private _invertedMask: boolean = false;
+
     public constructor() {
         super();
 
@@ -634,7 +636,7 @@ export class GComponent extends GObject {
             value.node.on(Node.EventType.SIZE_CHANGED, this.onMaskContentChanged, this);
             value.node.on(Node.EventType.ANCHOR_CHANGED, this.onMaskContentChanged, this);
 
-            this._customMask.inverted = inverted;
+            this._invertedMask = inverted;
             if (this._node.activeInHierarchy)
                 this.onMaskReady();
             else
@@ -665,16 +667,18 @@ export class GComponent extends GObject {
         this.off(FUIEvent.DISPLAY, this.onMaskReady, this);
 
         if (this._maskContent instanceof GImage) {
-            this._customMask.type = Mask.Type.IMAGE_STENCIL;
+            this._customMask.type = Mask.Type.SPRITE_STENCIL;
             this._customMask.alphaThreshold = 0.0001;
             this._customMask.spriteFrame = this._maskContent._content.spriteFrame;
         }
         else if (this._maskContent instanceof GGraph) {
             if (this._maskContent.type == 2)
-                this._customMask.type = Mask.Type.ELLIPSE;
+                this._customMask.type = Mask.Type.GRAPHICS_ELLIPSE;
             else
-                this._customMask.type = Mask.Type.RECT;
+                this._customMask.type = Mask.Type.GRAPHICS_RECT;
         }
+
+        this._customMask.inverted = this._invertedMask;
     }
 
     private onMaskContentChanged() {
