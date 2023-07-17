@@ -57,6 +57,10 @@ export class GButton extends GComponent {
         this._downEffectValue = 0.8;
     }
 
+    get downEffect(): number {
+        return this._downEffect;
+    }
+
     public get icon(): string | null {
         return this._icon;
     }

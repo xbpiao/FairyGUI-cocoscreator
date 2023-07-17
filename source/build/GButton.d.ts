@@ -34,6 +34,7 @@ export declare class GButton extends GComponent {
     static DISABLED: string;
     static SELECTED_DISABLED: string;
     constructor();
+    get downEffect(): number;
     get icon(): string | null;
     set icon(value: string | null);
     get selectedIcon(): string | null;
