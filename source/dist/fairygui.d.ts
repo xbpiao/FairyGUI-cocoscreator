@@ -57,6 +57,8 @@ declare module 'fairygui-cc' {
     export { GTween } from "fairygui-cc/tween/GTween";
     export { GTweener } from "fairygui-cc/tween/GTweener";
     export { EaseType } from "fairygui-cc/tween/EaseType";
+    export * from "fairygui-cc/tween/GPath";
+    export * from "fairygui-cc/tween/GPathPoint";
     export { UBBParser } from "fairygui-cc/utils/UBBParser";
     export { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
 }
@@ -687,7 +689,9 @@ declare module 'fairygui-cc/GLoader3D' {
         protected loadContent(): void;
         protected loadFromPackage(itemURL: string): void;
         setSpine(asset: sp.SkeletonData, anchor: Vec2, pma?: boolean): void;
+        freeSpine(): void;
         setDragonBones(asset: dragonBones.DragonBonesAsset, atlasAsset: dragonBones.DragonBonesAtlasAsset, anchor: Vec2, pma?: boolean): void;
+        freeDragonBones(): void;
         protected loadExternal(): void;
         protected handleSizeChanged(): void;
         protected handleAnchorChanged(): void;
@@ -796,6 +800,7 @@ declare module 'fairygui-cc/GComponent' {
         setup_afterAdd(buffer: ByteBuffer, beginPos: number): void;
         protected onEnable(): void;
         protected onDisable(): void;
+        addControllerAction(controlName: string, transition: Transition, fromPages: string[], toPages: string[]): void;
     }
 }
 
@@ -1241,6 +1246,7 @@ declare module 'fairygui-cc/PopupMenu' {
 }
 
 declare module 'fairygui-cc/Controller' {
+    import { ControllerAction } from "fairygui-cc/action/ControllerAction";
     import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
     export class Controller extends EventTarget {
         name: string;
@@ -1277,9 +1283,11 @@ declare module 'fairygui-cc/Controller' {
         get previousPageId(): string | null;
         runActions(): void;
         setup(buffer: ByteBuffer): void;
+        addAction(action: ControllerAction): void;
     }
     import { EventTarget } from "cc";
     import { GComponent } from "fairygui-cc/GComponent";
+    export function createAction(type: number): ControllerAction;
 }
 
 declare module 'fairygui-cc/Transition' {
@@ -1309,6 +1317,7 @@ declare module 'fairygui-cc/Transition' {
         onEnable(): void;
         onDisable(): void;
         setup(buffer: ByteBuffer): void;
+        copyFrom(source: Transition): void;
     }
 }
 
@@ -2173,6 +2182,46 @@ declare module 'fairygui-cc/tween/EaseType' {
     }
 }
 
+declare module 'fairygui-cc/tween/GPath' {
+    import { Vec2 } from "cc";
+    import { GPathPoint } from "fairygui-cc/tween/GPathPoint";
+    export class GPath {
+        constructor();
+        get length(): number;
+        create2(pt1: GPathPoint, pt2: GPathPoint, pt3?: GPathPoint, pt4?: GPathPoint): void;
+        create(points: Array<GPathPoint>): void;
+        clear(): void;
+        getPointAt(t: number, result?: Vec2): Vec2;
+        get segmentCount(): number;
+        getAnchorsInSegment(segmentIndex: number, points?: Array<Vec2>): Array<Vec2>;
+        getPointsInSegment(segmentIndex: number, t0: number, t1: number, points?: Array<Vec2>, ts?: Array<number>, pointDensity?: number): Array<Vec2>;
+        getAllPoints(points?: Array<Vec2>, ts?: Array<number>, pointDensity?: number): Array<Vec2>;
+    }
+}
+
+declare module 'fairygui-cc/tween/GPathPoint' {
+    export enum CurveType {
+        CRSpline = 0,
+        Bezier = 1,
+        CubicBezier = 2,
+        Straight = 3
+    }
+    export class GPathPoint {
+        x: number;
+        y: number;
+        control1_x: number;
+        control1_y: number;
+        control2_x: number;
+        control2_y: number;
+        curveType: number;
+        constructor();
+        static newPoint(x: number, y: number, curveType: number): GPathPoint;
+        static newBezierPoint(x: number, y: number, control1_x: number, control1_y: number): GPathPoint;
+        static newCubicBezierPoint(x: number, y: number, control1_x: number, control1_y: number, control2_x: number, control2_y: number): GPathPoint;
+        clone(): GPathPoint;
+    }
+}
+
 declare module 'fairygui-cc/utils/UBBParser' {
     export class UBBParser {
         protected _handlers: {
@@ -2308,20 +2357,17 @@ declare module 'fairygui-cc/Margin' {
     }
 }
 
-declare module 'fairygui-cc/tween/GPath' {
-    import { Vec2 } from "cc";
-    import { GPathPoint } from "fairygui-cc/tween/GPathPoint";
-    export class GPath {
+declare module 'fairygui-cc/action/ControllerAction' {
+    import { Controller } from "fairygui-cc/Controller";
+    import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
+    export class ControllerAction {
+        fromPage: Array<string>;
+        toPage: Array<string>;
         constructor();
-        get length(): number;
-        create2(pt1: GPathPoint, pt2: GPathPoint, pt3?: GPathPoint, pt4?: GPathPoint): void;
-        create(points: Array<GPathPoint>): void;
-        clear(): void;
-        getPointAt(t: number, result?: Vec2): Vec2;
-        get segmentCount(): number;
-        getAnchorsInSegment(segmentIndex: number, points?: Array<Vec2>): Array<Vec2>;
-        getPointsInSegment(segmentIndex: number, t0: number, t1: number, points?: Array<Vec2>, ts?: Array<number>, pointDensity?: number): Array<Vec2>;
-        getAllPoints(points?: Array<Vec2>, ts?: Array<number>, pointDensity?: number): Array<Vec2>;
+        run(controller: Controller, prevPage: string, curPage: string): void;
+        protected enter(controller: Controller): void;
+        protected leave(controller: Controller): void;
+        setup(buffer: ByteBuffer): void;
     }
 }
 
@@ -2337,29 +2383,6 @@ declare module 'fairygui-cc/tween/TweenValue' {
         getField(index: number): number;
         setField(index: number, value: number): void;
         setZero(): void;
-    }
-}
-
-declare module 'fairygui-cc/tween/GPathPoint' {
-    export enum CurveType {
-        CRSpline = 0,
-        Bezier = 1,
-        CubicBezier = 2,
-        Straight = 3
-    }
-    export class GPathPoint {
-        x: number;
-        y: number;
-        control1_x: number;
-        control1_y: number;
-        control2_x: number;
-        control2_y: number;
-        curveType: number;
-        constructor();
-        static newPoint(x: number, y: number, curveType: number): GPathPoint;
-        static newBezierPoint(x: number, y: number, control1_x: number, control1_y: number): GPathPoint;
-        static newCubicBezierPoint(x: number, y: number, control1_x: number, control1_y: number, control2_x: number, control2_y: number): GPathPoint;
-        clone(): GPathPoint;
     }
 }
 

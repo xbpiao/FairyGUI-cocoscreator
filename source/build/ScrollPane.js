@@ -1,4 +1,4 @@
-import { Component, director, isValid, Mask, math, Node, Rect, sys, UITransform, Vec2, View } from "cc";
+import { Component, director, isValid, Mask, math, Node, Rect, UITransform, Vec2, View } from "cc";
 import { Event as FUIEvent } from "./event/Event";
 import { ScrollBarDisplayType, ScrollType } from "./FieldTypes";
 import { Decls, GObject } from "./GObject";
@@ -1325,7 +1325,7 @@ export class ScrollPane extends Component {
             pos = -this._overlapSize[axis];
         else {
             //以屏幕像素为基准
-            var isMobile = sys.isMobile;
+            var isMobile = false; //sys.isMobile;
             var v2 = Math.abs(v) * this._velocityScale;
             const winSize = View.instance.getCanvasSize();
             //在移动设备上，需要对不同分辨率做一个适配，我们的速度判断以1136分辨率为基准

@@ -1,9 +1,11 @@
 {
-  "ver": "2.0.12",
+  "ver": "2.1.10",
   "importer": "fbx",
   "imported": true,
   "uuid": "aade09ee-8f9d-413c-a9e8-8c686ea5e160",
-  "files": [],
+  "files": [
+    "__original-animation-0.cconb"
+  ],
   "subMetas": {
     "ef5e1": {
       "importer": "gltf-mesh",
@@ -28,11 +30,10 @@
       "displayName": "",
       "id": "73b7f",
       "name": "Take 001.animation",
-      "ver": "1.0.14",
+      "ver": "1.0.16",
       "imported": true,
       "files": [
-        ".bin",
-        ".json"
+        ".cconb"
       ],
       "subMetas": {},
       "userData": {
@@ -64,6 +65,23 @@
         "jointsLength": 6
       }
     },
+    "80e0c": {
+      "importer": "gltf-embeded-image",
+      "uuid": "aade09ee-8f9d-413c-a9e8-8c686ea5e160@80e0c",
+      "displayName": "",
+      "id": "80e0c",
+      "name": "grass.png.image",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".png",
+        ".json"
+      ],
+      "subMetas": {}
+    },
     "9787f": {
       "importer": "texture",
       "uuid": "aade09ee-8f9d-413c-a9e8-8c686ea5e160@9787f",
@@ -83,9 +101,9 @@
         "magfilter": "linear",
         "mipfilter": "none",
         "premultiplyAlpha": false,
-        "anisotropy": 1,
-        "isUuid": false,
-        "imageUuidOrDatabaseUri": "db://assets/model/helloWorld/grass/grass.png"
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "aade09ee-8f9d-413c-a9e8-8c686ea5e160@80e0c"
       }
     },
     "3022b": {
@@ -108,8 +126,8 @@
   "userData": {
     "imageMetas": [
       {
-        "name": "grass",
-        "uri": "db://assets/model/helloWorld/grass/grass.png"
+        "name": "grass.png",
+        "uri": "aade09ee-8f9d-413c-a9e8-8c686ea5e160@80e0c"
       }
     ],
     "animationImportSettings": [

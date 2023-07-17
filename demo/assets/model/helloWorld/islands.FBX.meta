@@ -1,5 +1,5 @@
 {
-  "ver": "2.0.12",
+  "ver": "2.1.10",
   "importer": "fbx",
   "imported": true,
   "uuid": "0ab3142a-6968-4073-95af-026bc3b23623",
@@ -175,6 +175,23 @@
         "gltfIndex": 9
       }
     },
+    "baeab": {
+      "importer": "gltf-embeded-image",
+      "uuid": "0ab3142a-6968-4073-95af-026bc3b23623@baeab",
+      "displayName": "",
+      "id": "baeab",
+      "name": "seafloor.jpg.image",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".jpg",
+        ".json"
+      ],
+      "subMetas": {}
+    },
     "eeccb": {
       "importer": "gltf-embeded-image",
       "uuid": "0ab3142a-6968-4073-95af-026bc3b23623@eeccb",
@@ -222,9 +239,9 @@
         "magfilter": "linear",
         "mipfilter": "none",
         "premultiplyAlpha": false,
-        "anisotropy": 1,
-        "isUuid": false,
-        "imageUuidOrDatabaseUri": "db://assets/model/helloWorld/seafloor.jpg"
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "0ab3142a-6968-4073-95af-026bc3b23623@baeab"
       },
       "ver": "1.0.21",
       "imported": true,
@@ -246,7 +263,7 @@
         "magfilter": "linear",
         "mipfilter": "none",
         "premultiplyAlpha": false,
-        "anisotropy": 1,
+        "anisotropy": 0,
         "isUuid": true,
         "imageUuidOrDatabaseUri": "0ab3142a-6968-4073-95af-026bc3b23623@eeccb"
       },
@@ -270,7 +287,7 @@
         "magfilter": "linear",
         "mipfilter": "none",
         "premultiplyAlpha": false,
-        "anisotropy": 1,
+        "anisotropy": 0,
         "isUuid": true,
         "imageUuidOrDatabaseUri": "0ab3142a-6968-4073-95af-026bc3b23623@3b6f8"
       },
@@ -301,8 +318,8 @@
   "userData": {
     "imageMetas": [
       {
-        "name": "seafloor",
-        "uri": "db://assets/model/helloWorld/seafloor.jpg"
+        "name": "seafloor.jpg",
+        "uri": "0ab3142a-6968-4073-95af-026bc3b23623@baeab"
       },
       {
         "name": "stone.jpg",

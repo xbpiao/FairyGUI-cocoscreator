@@ -30,7 +30,7 @@ gulp.task("rollup", async function () {
         }
     };
     const subTask = await rollup.rollup(config);
-    await subTask.write(config);
+    await subTask.write(config.output);
 });
 
 gulp.task("uglify", function () {
@@ -47,9 +47,18 @@ gulp.task('buildDts', function () {
     });
 })
 
+gulp.task("copy", function () {
+    return gulp.src([
+        "dist/fairygui.mjs",
+        "dist/fairygui.min.mjs",
+        "dist/fairygui.d.ts",
+    ]).pipe(gulp.dest("../demo/node_modules/fairygui-cc/dist/"));
+});
+
 gulp.task('build', gulp.series(
     'buildJs',
     'rollup',
     'uglify',
-    'buildDts'
+    'buildDts',
+    'copy'
 ))
