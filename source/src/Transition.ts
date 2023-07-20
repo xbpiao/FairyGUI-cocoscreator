@@ -1163,7 +1163,7 @@ export class Transition {
         }
     }
 
-    copyFrom(source: Transition): void {
+    copyFrom(source: Transition, applyBaseValue = true): void {
         let cnt: number = source._items.length;
         this.name = source.name;
         this._options = source._options;
@@ -1173,7 +1173,35 @@ export class Transition {
         this._totalDuration = source._totalDuration;
 
         for (let i: number = 0; i < cnt; i++) {
-            this._items.push(source._items[i].clone());
+            let item = source._items[i].clone();
+
+            if(applyBaseValue) {
+                let config = item.tweenConfig;     
+                let rawConfig = source._items[i].tweenConfig;           
+                if(config) {
+                    if(item.type == ActionType.Scale) {
+                        if(config.startValue) {
+                            config.startValue.f1 = rawConfig.startValue.f1 * this._owner.scaleX;
+                            config.startValue.f2 = rawConfig.startValue.f2 * this._owner.scaleY;
+                        }
+
+                        if(config.endValue) {
+                            config.endValue.f1 = rawConfig.endValue.f1 * this._owner.scaleX;
+                            config.endValue.f2 = rawConfig.endValue.f2 * this._owner.scaleY;
+                        }
+                    }else if(item.type == ActionType.Alpha) {
+                        if(config.startValue) {
+                            config.startValue.f1 = rawConfig.startValue.f1 * this._owner.alpha;
+                        }
+    
+                        if(config.endValue) {
+                            config.endValue.f1 = rawConfig.endValue.f1 * this._owner.alpha;
+                        }
+                    }
+                }
+            }
+
+            this._items.push(item);
         }
     }
 }
@@ -1263,6 +1291,10 @@ class TweenConfig {
 
             if(k == "endHook") {
                 continue;
+            }
+
+            if(typeof value == "object") {
+                value = Object.assign({}, value);
             }
 
             tc[k] = value;
