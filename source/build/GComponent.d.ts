@@ -28,7 +28,10 @@ export declare class GComponent extends GObject {
     _scrollPane?: ScrollPane;
     _alignOffset: Vec2;
     _customMask?: Mask;
+    private _excludeInvisibles;
     constructor();
+    get excludeInvisibles(): boolean;
+    set excludeInvisibles(value: boolean);
     dispose(): void;
     get displayListContainer(): Node;
     addChild(child: GObject): GObject;
