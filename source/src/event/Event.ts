@@ -35,6 +35,8 @@ export class Event extends CCEvent {
 
     public static CLICK_ITEM: string = "fui_click_item";
 
+    public static ALPHA_CHANGED: string = "alpha_changed";
+
     public initiator: GObject;
     public pos: Vec2 = new Vec2();
     public touchId: number = 0;

@@ -290,6 +290,7 @@ Event.SCROLL_END = "fui_scroll_end";
 Event.PULL_DOWN_RELEASE = "fui_pull_down_release";
 Event.PULL_UP_RELEASE = "fui_pull_up_release";
 Event.CLICK_ITEM = "fui_click_item";
+Event.ALPHA_CHANGED = "alpha_changed";
 var eventPool = new Array();
 function borrowEvent(type, bubbles) {
     let evt;
@@ -12340,14 +12341,14 @@ class GLoader extends GObject {
             if (texture)
                 this.freeExternal(texture);
         }
+        this._content.frames = null;
+        this._content.spriteFrame = null;
+        this._contentItem = null;
         if (this._content2) {
             this._container.removeChild(this._content2.node);
             this._content2.dispose();
             this._content2 = null;
         }
-        this._content.frames = null;
-        this._content.spriteFrame = null;
-        this._contentItem = null;
     }
     handleSizeChanged() {
         super.handleSizeChanged();
@@ -12423,14 +12424,14 @@ class GLoader extends GObject {
         this._frame = buffer.readInt();
         if (buffer.readBool())
             this.color = buffer.readColor();
+        if (this._url)
+            this.loadContent();
         this._content.fillMethod = buffer.readByte();
         if (this._content.fillMethod != 0) {
             this._content.fillOrigin = buffer.readByte();
             this._content.fillClockwise = buffer.readBool();
             this._content.fillAmount = buffer.readFloat();
         }
-        if (this._url)
-            this.loadContent();
     }
 }
 GLoader._errorSignPool = new GObjectPool();

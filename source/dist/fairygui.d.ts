@@ -2061,6 +2061,7 @@ declare module 'fairygui-cc/event/Event' {
         static PULL_DOWN_RELEASE: string;
         static PULL_UP_RELEASE: string;
         static CLICK_ITEM: string;
+        static ALPHA_CHANGED: string;
         initiator: GObject;
         pos: Vec2;
         touchId: number;

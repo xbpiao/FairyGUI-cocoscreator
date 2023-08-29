@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component size="277,32" extention="ProgressBar">
+  <displayList>
+    <image id="n0" name="n0" src="t9fj58" fileName="images/caiji.png" xy="0,0"/>
+    <loader id="n2" name="bar" xy="23,-1" size="227,30" url="ui://9leh0eyft9fj5a" fillMethod="hz"/>
+  </displayList>
+  <ProgressBar titleType="valueAndmax"/>
+</component>

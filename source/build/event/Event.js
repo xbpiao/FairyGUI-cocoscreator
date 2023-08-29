@@ -51,6 +51,7 @@ Event.SCROLL_END = "fui_scroll_end";
 Event.PULL_DOWN_RELEASE = "fui_pull_down_release";
 Event.PULL_UP_RELEASE = "fui_pull_up_release";
 Event.CLICK_ITEM = "fui_click_item";
+Event.ALPHA_CHANGED = "alpha_changed";
 var eventPool = new Array();
 export function borrowEvent(type, bubbles) {
     let evt;
