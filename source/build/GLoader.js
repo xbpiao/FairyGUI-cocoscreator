@@ -475,14 +475,14 @@ export class GLoader extends GObject {
         this._frame = buffer.readInt();
         if (buffer.readBool())
             this.color = buffer.readColor();
+        if (this._url)
+            this.loadContent();
         this._content.fillMethod = buffer.readByte();
         if (this._content.fillMethod != 0) {
             this._content.fillOrigin = buffer.readByte();
             this._content.fillClockwise = buffer.readBool();
             this._content.fillAmount = buffer.readFloat();
         }
-        if (this._url)
-            this.loadContent();
     }
 }
 GLoader._errorSignPool = new GObjectPool();

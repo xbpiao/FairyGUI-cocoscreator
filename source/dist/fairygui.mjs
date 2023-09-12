@@ -1,4 +1,4 @@
-import { gfx, UIRenderer, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, view, ImageAsset, AudioClip, BufferAsset, AssetManager, Asset, assetManager, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox, Overflow } from 'cc';
+import { gfx, UIRenderer, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, view, ImageAsset, AudioClip, BufferAsset, assetManager, AssetManager, Asset, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox, Overflow } from 'cc';
 import { EDITOR } from 'cc/env';
 
 var ButtonMode;
@@ -5071,6 +5071,7 @@ class UIPackage {
         pkg = new UIPackage();
         pkg._bundle = resources;
         pkg.loadPackage(new ByteBuffer(asset._buffer), path);
+        assetManager.releaseAsset(asset);
         _instById[pkg.id] = pkg;
         _instByName[pkg.name] = pkg;
         _instById[pkg._path] = pkg;
@@ -5111,6 +5112,7 @@ class UIPackage {
             pkg._bundle = bundle;
             let buffer = asset.buffer ? asset.buffer() : asset._nativeAsset;
             pkg.loadPackage(new ByteBuffer(buffer), path);
+            assetManager.releaseAsset(asset);
             let cnt = pkg._items.length;
             let urls = [];
             for (var i = 0; i < cnt; i++) {
@@ -12430,14 +12432,14 @@ class GLoader extends GObject {
         this._frame = buffer.readInt();
         if (buffer.readBool())
             this.color = buffer.readColor();
+        if (this._url)
+            this.loadContent();
         this._content.fillMethod = buffer.readByte();
         if (this._content.fillMethod != 0) {
             this._content.fillOrigin = buffer.readByte();
             this._content.fillClockwise = buffer.readBool();
             this._content.fillAmount = buffer.readFloat();
         }
-        if (this._url)
-            this.loadContent();
     }
 }
 GLoader._errorSignPool = new GObjectPool();
