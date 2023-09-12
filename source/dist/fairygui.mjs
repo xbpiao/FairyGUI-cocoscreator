@@ -1,4 +1,4 @@
-import { gfx, RenderComponent, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, view, ImageAsset, AudioClip, BufferAsset, AssetManager, Asset, assetManager, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox } from 'cc';
+import { gfx, RenderComponent, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, view, ImageAsset, AudioClip, BufferAsset, assetManager, AssetManager, Asset, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox } from 'cc';
 import { EDITOR } from 'cc/env';
 
 var ButtonMode;
@@ -5072,6 +5072,7 @@ class UIPackage {
         pkg = new UIPackage();
         pkg._bundle = resources;
         pkg.loadPackage(new ByteBuffer(asset._buffer), path);
+        assetManager.releaseAsset(asset);
         _instById[pkg.id] = pkg;
         _instByName[pkg.name] = pkg;
         _instById[pkg._path] = pkg;
@@ -5112,6 +5113,7 @@ class UIPackage {
             pkg._bundle = bundle;
             let buffer = asset.buffer ? asset.buffer() : asset._nativeAsset;
             pkg.loadPackage(new ByteBuffer(buffer), path);
+            assetManager.releaseAsset(asset);
             let cnt = pkg._items.length;
             let urls = [];
             for (var i = 0; i < cnt; i++) {
@@ -12341,14 +12343,14 @@ class GLoader extends GObject {
             if (texture)
                 this.freeExternal(texture);
         }
-        this._content.frames = null;
-        this._content.spriteFrame = null;
-        this._contentItem = null;
         if (this._content2) {
             this._container.removeChild(this._content2.node);
             this._content2.dispose();
             this._content2 = null;
         }
+        this._content.frames = null;
+        this._content.spriteFrame = null;
+        this._contentItem = null;
     }
     handleSizeChanged() {
         super.handleSizeChanged();

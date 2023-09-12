@@ -392,14 +392,14 @@ export class GLoader extends GObject {
             if (texture)
                 this.freeExternal(texture);
         }
-        this._content.frames = null;
-        this._content.spriteFrame = null;
-        this._contentItem = null;
         if (this._content2) {
             this._container.removeChild(this._content2.node);
             this._content2.dispose();
             this._content2 = null;
         }
+        this._content.frames = null;
+        this._content.spriteFrame = null;
+        this._contentItem = null;
     }
     handleSizeChanged() {
         super.handleSizeChanged();

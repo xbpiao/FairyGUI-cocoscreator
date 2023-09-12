@@ -82,6 +82,8 @@ export class UIPackage {
         pkg = new UIPackage();
         pkg._bundle = resources;
         pkg.loadPackage(new ByteBuffer(asset._buffer), path);
+        assetManager.releaseAsset(asset);
+
         _instById[pkg.id] = pkg;
         _instByName[pkg.name] = pkg;
         _instById[pkg._path] = pkg;
@@ -153,6 +155,8 @@ export class UIPackage {
             pkg._bundle = bundle;
             let buffer: ArrayBuffer = (<any>asset).buffer ? (<any>asset).buffer() : (<any>asset)._nativeAsset;
             pkg.loadPackage(new ByteBuffer(buffer), path);
+            assetManager.releaseAsset(asset);
+            
             let cnt: number = pkg._items.length;
             let urls: Array<string> = [];
             let types: Array<any> = [];
