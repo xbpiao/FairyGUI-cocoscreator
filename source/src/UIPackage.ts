@@ -665,7 +665,7 @@ export class UIPackage {
     }
 
     public async getItemAssetAsync2(item: PackageItem) {
-        if(item.__loaded) {
+        if(item.__loaded || item.asset) {
             return item.asset;
         }
 

@@ -5572,7 +5572,7 @@ class UIPackage {
     }
     getItemAssetAsync2(item) {
         return __awaiter$1(this, void 0, void 0, function* () {
-            if (item.__loaded) {
+            if (item.__loaded || item.asset) {
                 return item.asset;
             }
             switch (item.type) {

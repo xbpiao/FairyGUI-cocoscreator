@@ -25,7 +25,6 @@ export default class BagDemo extends Component {
     }
 }
 
-
 class BagWindow extends fgui.Window {
     public constructor() {
         super();
