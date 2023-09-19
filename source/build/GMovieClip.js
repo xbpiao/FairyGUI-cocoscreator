@@ -108,12 +108,13 @@ export class GMovieClip extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.load();
-        this._content.interval = contentItem.interval;
-        this._content.swing = contentItem.swing;
-        this._content.repeatDelay = contentItem.repeatDelay;
-        this._content.frames = contentItem.frames;
-        this._content.smoothing = contentItem.smoothing;
+        contentItem.loadAsync().then(() => {
+            this._content.interval = contentItem.interval;
+            this._content.swing = contentItem.swing;
+            this._content.repeatDelay = contentItem.repeatDelay;
+            this._content.frames = contentItem.frames;
+            this._content.smoothing = contentItem.smoothing;
+        });
     }
     setup_beforeAdd(buffer, beginPos) {
         super.setup_beforeAdd(buffer, beginPos);

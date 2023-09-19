@@ -17,6 +17,7 @@ export declare class PackageItem {
     loading?: Array<Function>;
     rawData?: ByteBuffer;
     asset?: Asset;
+    __loaded: boolean;
     highResolution?: Array<string>;
     branches?: Array<string>;
     scale9Grid?: Rect;
@@ -33,6 +34,7 @@ export declare class PackageItem {
     atlasAsset?: dragonBones.DragonBonesAtlasAsset;
     constructor();
     load(): Asset;
+    loadAsync(): Promise<Asset>;
     getBranch(): PackageItem;
     getHighResolution(): PackageItem;
     toString(): string;

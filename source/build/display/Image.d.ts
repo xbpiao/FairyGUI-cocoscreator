@@ -11,11 +11,14 @@ export declare class Image extends Sprite {
     set flip(value: FlipType);
     get fillMethod(): FillMethod;
     set fillMethod(value: FillMethod);
+    private updateFillType;
     get fillOrigin(): FillOrigin;
     set fillOrigin(value: FillOrigin);
     get fillClockwise(): boolean;
     set fillClockwise(value: boolean);
     get fillAmount(): number;
     set fillAmount(value: number);
+    private updateFillRange;
+    __update(): void;
     private setupFill;
 }

@@ -1,3 +1,12 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import { Asset, assetManager, AssetManager, AudioClip, BitmapFont, BufferAsset, dragonBones, ImageAsset, path, Rect, resources, Size, sp, SpriteFrame, Texture2D, Vec2 } from "cc";
 var PathUtils = path;
 import { ObjectType, PackageItemType } from "./FieldTypes";
@@ -66,6 +75,7 @@ export class UIPackage {
         let path;
         let onProgress;
         let onComplete;
+        let delayLoad = true;
         let bundle;
         if (args[0] instanceof AssetManager.Bundle) {
             bundle = args[0];
@@ -73,6 +83,7 @@ export class UIPackage {
             if (args.length > 3) {
                 onProgress = args[2];
                 onComplete = args[3];
+                delayLoad = args[4];
             }
             else
                 onComplete = args[2];
@@ -103,7 +114,7 @@ export class UIPackage {
             let types = [];
             for (var i = 0; i < cnt; i++) {
                 var pi = pkg._items[i];
-                if (pi.type == PackageItemType.Atlas || pi.type == PackageItemType.Sound) {
+                if (pi.type == PackageItemType.Atlas && !delayLoad || pi.type == PackageItemType.Sound) {
                     let assetType = ItemTypeToAssetType[pi.type];
                     urls.push(pi.file);
                     types.push(assetType);
@@ -503,6 +514,106 @@ export class UIPackage {
         }
         return item.asset;
     }
+    loadAssetAsync(bundle, path, type) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                bundle.load(path, type, null, (err, asset) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(asset);
+                });
+            });
+        });
+    }
+    getItemAssetAsync2(item) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (item.__loaded) {
+                return item.asset;
+            }
+            switch (item.type) {
+                case PackageItemType.Image:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        var sprite = this._sprites[item.id];
+                        if (sprite) {
+                            let atlasTexture = yield this.getItemAssetAsync2(sprite.atlas);
+                            if (atlasTexture) {
+                                let sf = new SpriteFrame();
+                                sf.texture = atlasTexture;
+                                sf.rect = sprite.rect;
+                                sf.rotated = sprite.rotated;
+                                sf.offset = new Vec2(sprite.offset.x - (sprite.originalSize.width - sprite.rect.width) / 2, -(sprite.offset.y - (sprite.originalSize.height - sprite.rect.height) / 2));
+                                sf.originalSize = sprite.originalSize;
+                                if (item.scale9Grid) {
+                                    sf.insetLeft = item.scale9Grid.x;
+                                    sf.insetTop = item.scale9Grid.y;
+                                    sf.insetRight = item.width - item.scale9Grid.xMax;
+                                    sf.insetBottom = item.height - item.scale9Grid.yMax;
+                                }
+                                item.asset = sf;
+                            }
+                        }
+                        item.__loaded = true;
+                    }
+                    break;
+                case PackageItemType.Atlas:
+                case PackageItemType.Sound:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        item.asset = (yield this.loadAssetAsync(this._bundle, item.file, ItemTypeToAssetType[item.type]));
+                        if (!item.asset)
+                            console.log("Resource '" + item.file + "' not found");
+                        else if (item.type == PackageItemType.Atlas) {
+                            const asset = item.asset;
+                            let tex = asset['_texture'];
+                            if (!tex) {
+                                tex = new Texture2D();
+                                tex.name = asset.nativeUrl;
+                                tex.image = asset;
+                            }
+                            item.asset = tex;
+                        }
+                        else {
+                            item.asset = item.asset;
+                        }
+                        item.__loaded = true;
+                    }
+                    break;
+                case PackageItemType.Font:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        yield this.loadFontAsync(item);
+                        item.__loaded = true;
+                    }
+                    break;
+                case PackageItemType.MovieClip:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        yield this.loadMovieClipAsync(item);
+                        item.__loaded = true;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            let check = (done) => {
+                if (!item.__loaded) {
+                    setTimeout(() => {
+                        check(done);
+                    }, 10, this);
+                }
+                else {
+                    done(true);
+                }
+            };
+            yield new Promise((resolve, reject) => {
+                check(resolve);
+            });
+            return item.asset;
+        });
+    }
     getItemAssetAsync(item, onComplete) {
         if (item.decoded) {
             onComplete(null, item);
@@ -533,6 +644,48 @@ export class UIPackage {
             var pi = this._items[i];
             this.getItemAsset(pi);
         }
+    }
+    loadMovieClipAsync(item) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var buffer = item.rawData;
+            buffer.seek(0, 0);
+            item.interval = buffer.readInt() / 1000;
+            item.swing = buffer.readBool();
+            item.repeatDelay = buffer.readInt() / 1000;
+            buffer.seek(0, 1);
+            var frameCount = buffer.readShort();
+            item.frames = [];
+            var spriteId;
+            var sprite;
+            for (var i = 0; i < frameCount; i++) {
+                var nextPos = buffer.readShort();
+                nextPos += buffer.position;
+                let rect = new Rect();
+                rect.x = buffer.readInt();
+                rect.y = buffer.readInt();
+                rect.width = buffer.readInt();
+                rect.height = buffer.readInt();
+                let addDelay = buffer.readInt() / 1000;
+                let frame = { rect: rect, addDelay: addDelay, texture: null };
+                spriteId = buffer.readS();
+                if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
+                    let atlasTexture = null;
+                    atlasTexture = (yield this.getItemAssetAsync2(sprite.atlas));
+                    if (atlasTexture) {
+                        let sx = item.width / frame.rect.width;
+                        let sf = new SpriteFrame();
+                        sf.texture = atlasTexture;
+                        sf.rect = sprite.rect;
+                        sf.rotated = sprite.rotated;
+                        sf.offset = new Vec2(frame.rect.x - (item.width - frame.rect.width) / 2, -(frame.rect.y - (item.height - frame.rect.height) / 2));
+                        sf.originalSize = new Size(item.width, item.height);
+                        frame.texture = sf;
+                    }
+                }
+                item.frames.push(frame);
+                buffer.position = nextPos;
+            }
+        });
     }
     loadMovieClip(item) {
         var buffer = item.rawData;
@@ -629,15 +782,14 @@ export class UIPackage {
             else {
                 let sprite = this._sprites[img];
                 if (sprite) {
+                    if (!mainSprite) {
+                        mainSprite = sprite;
+                    }
                     rect.set(sprite.rect);
                     bg.xOffset += sprite.offset.x;
                     bg.yOffset += sprite.offset.y;
                     if (fontSize == 0)
                         fontSize = sprite.originalSize.height;
-                    if (!mainTexture) {
-                        sprite.atlas.load();
-                        mainTexture = sprite.atlas.asset;
-                    }
                 }
                 if (bg.xAdvance == 0) {
                     if (xadvance == 0)
@@ -653,10 +805,104 @@ export class UIPackage {
         font.fntConfig.commonHeight = lineHeight == 0 ? fontSize : lineHeight;
         font.fntConfig.resizable = resizable;
         font.fntConfig.canTint = canTint;
+        if (!mainTexture && mainSprite) {
+            mainSprite.atlas.load();
+            mainTexture = mainSprite.atlas.asset;
+        }
         let spriteFrame = new SpriteFrame();
         spriteFrame.texture = mainTexture;
         font.spriteFrame = spriteFrame;
         font.onLoaded();
+    }
+    loadFontAsync(item) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var font = new BitmapFont();
+            item.asset = font;
+            font.fntConfig = {
+                commonHeight: 0,
+                fontSize: 0,
+                kerningDict: {},
+                fontDefDictionary: {}
+            };
+            let dict = font.fntConfig.fontDefDictionary;
+            var buffer = item.rawData;
+            buffer.seek(0, 0);
+            let ttf = buffer.readBool();
+            let canTint = buffer.readBool();
+            let resizable = buffer.readBool();
+            buffer.readBool(); //has channel
+            let fontSize = buffer.readInt();
+            var xadvance = buffer.readInt();
+            var lineHeight = buffer.readInt();
+            let mainTexture;
+            var mainSprite = this._sprites[item.id];
+            if (mainSprite)
+                mainTexture = (this.getItemAsset(mainSprite.atlas));
+            buffer.seek(0, 1);
+            var bg;
+            var cnt = buffer.readInt();
+            for (var i = 0; i < cnt; i++) {
+                var nextPos = buffer.readShort();
+                nextPos += buffer.position;
+                bg = {};
+                var ch = buffer.readUshort();
+                dict[ch] = bg;
+                let rect = new Rect();
+                bg.rect = rect;
+                var img = buffer.readS();
+                rect.x = buffer.readInt();
+                rect.y = buffer.readInt();
+                bg.xOffset = buffer.readInt();
+                bg.yOffset = buffer.readInt();
+                rect.width = buffer.readInt();
+                rect.height = buffer.readInt();
+                bg.xAdvance = buffer.readInt();
+                bg.channel = buffer.readByte();
+                if (bg.channel == 1)
+                    bg.channel = 3;
+                else if (bg.channel == 2)
+                    bg.channel = 2;
+                else if (bg.channel == 3)
+                    bg.channel = 1;
+                if (ttf) {
+                    rect.x += mainSprite.rect.x;
+                    rect.y += mainSprite.rect.y;
+                }
+                else {
+                    let sprite = this._sprites[img];
+                    if (sprite) {
+                        if (!mainSprite) {
+                            mainSprite = sprite;
+                        }
+                        rect.set(sprite.rect);
+                        bg.xOffset += sprite.offset.x;
+                        bg.yOffset += sprite.offset.y;
+                        if (fontSize == 0)
+                            fontSize = sprite.originalSize.height;
+                    }
+                    if (bg.xAdvance == 0) {
+                        if (xadvance == 0)
+                            bg.xAdvance = bg.xOffset + bg.rect.width;
+                        else
+                            bg.xAdvance = xadvance;
+                    }
+                }
+                buffer.position = nextPos;
+            }
+            font.fontSize = fontSize;
+            font.fntConfig.fontSize = fontSize;
+            font.fntConfig.commonHeight = lineHeight == 0 ? fontSize : lineHeight;
+            font.fntConfig.resizable = resizable;
+            font.fntConfig.canTint = canTint;
+            if (!mainTexture && mainSprite) {
+                yield mainSprite.atlas.loadAsync();
+                mainTexture = mainSprite.atlas.asset;
+            }
+            let spriteFrame = new SpriteFrame();
+            spriteFrame.texture = mainTexture;
+            font.spriteFrame = spriteFrame;
+            font.onLoaded();
+        });
     }
     loadSpine(item) {
         this._bundle.load(item.file, sp.SkeletonData, (err, asset) => {

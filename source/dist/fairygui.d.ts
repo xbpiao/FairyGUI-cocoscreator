@@ -531,6 +531,7 @@ declare module 'fairygui-cc/GRichTextField' {
     import { GTextField } from "fairygui-cc/GTextField";
     export class RichTextImageAtlas extends SpriteAtlas {
         getSpriteFrame(key: string): SpriteFrame;
+        getSpriteFrameAsync(key: string): Promise<SpriteFrame>;
     }
     export class GRichTextField extends GTextField {
         _richText: RichText;
@@ -1625,6 +1626,15 @@ declare module 'fairygui-cc/UIPackage' {
                 */
             static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
             /**
+                * 载入一个包。包的资源从Asset Bundle加载.
+                * @param bundle Asset Bundle 对象.
+                * @param path 资源相对 Asset Bundle 目录的路径.
+                * @param onProgress 加载进度回调.
+                * @param onComplete 载入成功后的回调.
+                * @param delayLoad 延迟加载资源.
+                */
+            static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void, delayLoad?: boolean): void;
+            /**
                 * 载入一个包。包的资源从resources加载.
                 * @param path 资源相对 resources 的路径.
                 * @param onComplete 载入成功后的回调.
@@ -1655,6 +1665,7 @@ declare module 'fairygui-cc/UIPackage' {
             getItemByName(resName: string): PackageItem;
             getItemAssetByName(resName: string): Asset;
             getItemAsset(item: PackageItem): Asset;
+            getItemAssetAsync2(item: PackageItem): Promise<Asset>;
             getItemAssetAsync(item: PackageItem, onComplete?: (err: Error, item: PackageItem) => void): void;
             loadAllAssets(): void;
     }
@@ -1688,6 +1699,7 @@ declare module 'fairygui-cc/PackageItem' {
         loading?: Array<Function>;
         rawData?: ByteBuffer;
         asset?: Asset;
+        __loaded: boolean;
         highResolution?: Array<string>;
         branches?: Array<string>;
         scale9Grid?: Rect;
@@ -1704,6 +1716,7 @@ declare module 'fairygui-cc/PackageItem' {
         atlasAsset?: dragonBones.DragonBonesAtlasAsset;
         constructor();
         load(): Asset;
+        loadAsync(): Promise<Asset>;
         getBranch(): PackageItem;
         getHighResolution(): PackageItem;
         toString(): string;
@@ -1996,6 +2009,7 @@ declare module 'fairygui-cc/display/Image' {
         set fillClockwise(value: boolean);
         get fillAmount(): number;
         set fillAmount(value: number);
+        __update(): void;
     }
 }
 

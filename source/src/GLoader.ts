@@ -258,51 +258,51 @@ export class GLoader extends GObject {
             this.sourceWidth = this._contentItem.width;
             this.sourceHeight = this._contentItem.height;
             this._contentItem = this._contentItem.getHighResolution();
-            this._contentItem.load();
-
-            if (this._autoSize)
-                this.setSize(this.sourceWidth, this.sourceHeight);
-
-            if (this._contentItem.type == PackageItemType.Image) {
-                if (!this._contentItem.asset) {
-                    this.setErrorState();
-                }
-                else {
-                    this._content.spriteFrame = <SpriteFrame>this._contentItem.asset;
-                    if (this._content.fillMethod == 0) {
-                        if (this._contentItem.scale9Grid)
-                            this._content.type = Sprite.Type.SLICED;
-                        else if (this._contentItem.scaleByTile)
-                            this._content.type = Sprite.Type.TILED;
-                        else
-                            this._content.type = Sprite.Type.SIMPLE;
+            this._contentItem.loadAsync().then(()=>{
+                if (this._autoSize)
+                    this.setSize(this.sourceWidth, this.sourceHeight);
+    
+                if (this._contentItem.type == PackageItemType.Image) {
+                    if (!this._contentItem.asset) {
+                        this.setErrorState();
                     }
+                    else {
+                        this._content.spriteFrame = <SpriteFrame>this._contentItem.asset;
+                        if (this._content.fillMethod == 0) {
+                            if (this._contentItem.scale9Grid)
+                                this._content.type = Sprite.Type.SLICED;
+                            else if (this._contentItem.scaleByTile)
+                                this._content.type = Sprite.Type.TILED;
+                            else
+                                this._content.type = Sprite.Type.SIMPLE;
+                        }
+                        this.updateLayout();
+                    }
+                }
+                else if (this._contentItem.type == PackageItemType.MovieClip) {
+                    this._content.interval = this._contentItem.interval;
+                    this._content.swing = this._contentItem.swing;
+                    this._content.repeatDelay = this._contentItem.repeatDelay;
+                    this._content.frames = this._contentItem.frames;
                     this.updateLayout();
                 }
-            }
-            else if (this._contentItem.type == PackageItemType.MovieClip) {
-                this._content.interval = this._contentItem.interval;
-                this._content.swing = this._contentItem.swing;
-                this._content.repeatDelay = this._contentItem.repeatDelay;
-                this._content.frames = this._contentItem.frames;
-                this.updateLayout();
-            }
-            else if (this._contentItem.type == PackageItemType.Component) {
-                var obj: GObject = UIPackage.createObjectFromURL(itemURL);
-                if (!obj)
-                    this.setErrorState();
-                else if (!(obj instanceof GComponent)) {
-                    obj.dispose();
-                    this.setErrorState();
+                else if (this._contentItem.type == PackageItemType.Component) {
+                    var obj: GObject = UIPackage.createObjectFromURL(itemURL);
+                    if (!obj)
+                        this.setErrorState();
+                    else if (!(obj instanceof GComponent)) {
+                        obj.dispose();
+                        this.setErrorState();
+                    }
+                    else {
+                        this._content2 = obj;
+                        this._container.addChild(this._content2.node);
+                        this.updateLayout();
+                    }
                 }
-                else {
-                    this._content2 = obj;
-                    this._container.addChild(this._content2.node);
-                    this.updateLayout();
-                }
-            }
-            else
-                this.setErrorState();
+                else
+                    this.setErrorState();
+            });
         }
         else
             this.setErrorState();

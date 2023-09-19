@@ -76,13 +76,16 @@ export class GImage extends GObject {
         this.setSize(this.sourceWidth, this.sourceHeight);
 
         contentItem = contentItem.getHighResolution();
-        contentItem.load();
 
         if (contentItem.scale9Grid)
             this._content.type = Sprite.Type.SLICED;
         else if (contentItem.scaleByTile)
             this._content.type = Sprite.Type.TILED;
-        this._content.spriteFrame = <SpriteFrame>contentItem.asset;
+            
+        contentItem.loadAsync().then(()=>{
+            this._content.spriteFrame = <SpriteFrame>contentItem.asset;
+            this._content.__update();
+        });
     }
 
     protected handleGrayedChanged(): void {

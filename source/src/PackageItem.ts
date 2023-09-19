@@ -20,6 +20,8 @@ export class PackageItem {
     public loading?: Array<Function>;
     public rawData?: ByteBuffer;
     public asset?: Asset;
+    
+    __loaded: boolean = false;
 
     public highResolution?: Array<string>;
     public branches?: Array<string>;
@@ -49,6 +51,10 @@ export class PackageItem {
 
     public load(): Asset {
         return this.owner.getItemAsset(this);
+    }
+
+    public loadAsync() {
+        return this.owner.getItemAssetAsync2(this);
     }
 
     public getBranch(): PackageItem {

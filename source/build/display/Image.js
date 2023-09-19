@@ -33,18 +33,24 @@ export class Image extends Sprite {
         if (this._fillMethod != value) {
             this._fillMethod = value;
             if (this._fillMethod != 0) {
-                this.type = Sprite.Type.FILLED;
-                if (this._fillMethod <= 3)
-                    this.fillType = this._fillMethod - 1;
-                else
-                    this.fillType = Sprite.FillType.RADIAL;
-                this.fillCenter = new Vec2(0.5, 0.5);
+                this.updateFillType();
                 this.setupFill();
             }
             else {
                 this.type = Sprite.Type.SIMPLE;
             }
         }
+    }
+    updateFillType() {
+        if (!this.spriteFrame) {
+            return;
+        }
+        this.type = Sprite.Type.FILLED;
+        if (this._fillMethod <= 3)
+            this.fillType = this._fillMethod - 1;
+        else
+            this.fillType = Sprite.FillType.RADIAL;
+        this.fillCenter = new Vec2(0.5, 0.5);
     }
     get fillOrigin() {
         return this._fillOrigin;
@@ -73,14 +79,30 @@ export class Image extends Sprite {
         if (this._fillAmount != value) {
             this._fillAmount = value;
             if (this._fillMethod != 0) {
-                if (this._fillClockwise)
-                    this.fillRange = -this._fillAmount;
-                else
-                    this.fillRange = this._fillAmount;
+                this.updateFillRange();
             }
         }
     }
+    updateFillRange() {
+        if (!this.spriteFrame) {
+            return;
+        }
+        if (this._fillClockwise)
+            this.fillRange = -this._fillAmount;
+        else
+            this.fillRange = this._fillAmount;
+    }
+    __update() {
+        if (this._fillMethod != 0) {
+            this.updateFillType();
+            this.setupFill();
+            this.updateFillRange();
+        }
+    }
     setupFill() {
+        if (!this.spriteFrame) {
+            return;
+        }
         if (this._fillMethod == FillMethod.Horizontal) {
             this._fillClockwise = this._fillOrigin == FillOrigin.Right || this._fillOrigin == FillOrigin.Bottom;
             this.fillStart = this._fillClockwise ? 1 : 0;

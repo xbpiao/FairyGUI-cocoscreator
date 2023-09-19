@@ -49,12 +49,20 @@ export class GTextField extends GObject {
             if (newFont.startsWith("ui://")) {
                 var pi = UIPackage.getItemByURL(newFont);
                 if (pi)
-                    newFont = pi.owner.getItemAsset(pi);
+                    newFont = pi.owner.getItemAssetAsync2(pi);
                 else
                     newFont = UIConfig.defaultFont;
             }
-            this._realFont = newFont;
-            this.updateFont();
+            if (newFont instanceof Promise) {
+                newFont.then((asset) => {
+                    this._realFont = asset;
+                    this.updateFont();
+                });
+            }
+            else {
+                this._realFont = newFont;
+                this.updateFont();
+            }
         }
     }
     get fontSize() {

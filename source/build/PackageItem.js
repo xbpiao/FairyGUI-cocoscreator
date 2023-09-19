@@ -3,9 +3,13 @@ export class PackageItem {
     constructor() {
         this.width = 0;
         this.height = 0;
+        this.__loaded = false;
     }
     load() {
         return this.owner.getItemAsset(this);
+    }
+    loadAsync() {
+        return this.owner.getItemAssetAsync2(this);
     }
     getBranch() {
         if (this.branches && this.owner._branchIndex != -1) {

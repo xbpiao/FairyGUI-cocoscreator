@@ -50,8 +50,8 @@
     },
     "ecb26ae3-1542-423f-939b-f4a0ffce9f0b": {
       "position": {
-        "x": 564,
-        "y": 528.5,
+        "x": 568,
+        "y": 320,
         "z": 5000
       },
       "rotation": {
@@ -86,7 +86,7 @@
     }
   },
   "camera-uuids": [
-    "7c3e7fab-7b1e-4865-ba84-3cf81b48b9fb"
+    "ecb26ae3-1542-423f-939b-f4a0ffce9f0b"
   ],
   "camera": {
     "fov": 45,

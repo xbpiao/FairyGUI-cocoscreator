@@ -21,6 +21,19 @@ export class RichTextImageAtlas extends SpriteAtlas {
 
         return super.getSpriteFrame(key);
     }
+
+    public async getSpriteFrameAsync(key: string) {
+        let pi: PackageItem = UIPackage.getItemByURL(key);
+        if (pi) {
+            await pi.loadAsync();
+            if (pi.type == PackageItemType.Image)
+                return <SpriteFrame>pi.asset;
+            else if (pi.type == PackageItemType.MovieClip)
+                return pi.frames[0].texture;
+        }
+
+        return super.getSpriteFrame(key);
+    }
 }
 
 const imageAtlas: RichTextImageAtlas = new RichTextImageAtlas();
