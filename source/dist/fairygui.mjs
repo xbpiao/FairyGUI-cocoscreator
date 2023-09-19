@@ -2482,6 +2482,7 @@ UIConfig.frameTimeForAsyncUIConstruction = 0.002;
 UIConfig.linkUnderline = true;
 //Default group name of UI node.<br/>
 UIConfig.defaultUILayer = Layers.Enum.UI_2D;
+UIConfig.defaultDelayLoad = true;
 let _fontRegistry = {};
 function registerFont(name, font, bundle) {
     if (font instanceof Font)
@@ -5120,7 +5121,7 @@ class UIPackage {
         let path;
         let onProgress;
         let onComplete;
-        let delayLoad = true;
+        let delayLoad = false;
         let bundle;
         if (args[0] instanceof AssetManager.Bundle) {
             bundle = args[0];
@@ -5142,6 +5143,7 @@ class UIPackage {
             else
                 onComplete = args[1];
         }
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err, asset) => {
             if (err) {

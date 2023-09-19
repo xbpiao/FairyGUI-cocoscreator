@@ -1782,6 +1782,7 @@ declare module 'fairygui-cc/UIConfig' {
         static frameTimeForAsyncUIConstruction: number;
         static linkUnderline: boolean;
         static defaultUILayer: number;
+        static defaultDelayLoad: boolean;
     }
     export function registerFont(name: string, font: Font | string, bundle?: AssetManager.Bundle): void;
     export function getFontByName(name: string): Font;

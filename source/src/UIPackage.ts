@@ -7,6 +7,7 @@ import { TranslationHelper } from "./TranslationHelper";
 import { ByteBuffer } from "./utils/ByteBuffer";
 import { PixelHitTestData } from "./event/HitTest";
 import { Frame } from "./display/MovieClip";
+import { UIConfig } from "./UIConfig";
 
 type PackageDependency = { id: string, name: string };
 
@@ -131,7 +132,7 @@ export class UIPackage {
         let path: string;
         let onProgress: (finish: number, total: number, item: AssetManager.RequestItem) => void;
         let onComplete: (error: Error, pkg: UIPackage) => void;
-        let delayLoad: boolean = true;
+        let delayLoad: boolean = false;
         let bundle: AssetManager.Bundle;
         if (args[0] instanceof AssetManager.Bundle) {
             bundle = args[0];
@@ -153,6 +154,8 @@ export class UIPackage {
             else
                 onComplete = args[1];
         }
+
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
 
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err: Error | null, asset: Asset) => {

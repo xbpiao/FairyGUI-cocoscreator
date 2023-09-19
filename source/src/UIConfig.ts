@@ -64,6 +64,8 @@ export class UIConfig {
 
     //Default group name of UI node.<br/>
     public static defaultUILayer: number = Layers.Enum.UI_2D;
+
+    public static defaultDelayLoad: boolean = true;
 }
 
 let _fontRegistry: { [index: string]: Font } = {};

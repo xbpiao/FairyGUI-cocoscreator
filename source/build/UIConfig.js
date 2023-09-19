@@ -33,6 +33,7 @@ UIConfig.frameTimeForAsyncUIConstruction = 0.002;
 UIConfig.linkUnderline = true;
 //Default group name of UI node.<br/>
 UIConfig.defaultUILayer = Layers.Enum.UI_2D;
+UIConfig.defaultDelayLoad = true;
 let _fontRegistry = {};
 export function registerFont(name, font, bundle) {
     if (font instanceof Font)

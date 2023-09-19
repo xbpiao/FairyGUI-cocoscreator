@@ -15,6 +15,7 @@ import { PackageItem } from "./PackageItem";
 import { TranslationHelper } from "./TranslationHelper";
 import { ByteBuffer } from "./utils/ByteBuffer";
 import { PixelHitTestData } from "./event/HitTest";
+import { UIConfig } from "./UIConfig";
 export class UIPackage {
     constructor() {
         this._items = [];
@@ -75,7 +76,7 @@ export class UIPackage {
         let path;
         let onProgress;
         let onComplete;
-        let delayLoad = true;
+        let delayLoad = false;
         let bundle;
         if (args[0] instanceof AssetManager.Bundle) {
             bundle = args[0];
@@ -97,6 +98,7 @@ export class UIPackage {
             else
                 onComplete = args[1];
         }
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err, asset) => {
             if (err) {
