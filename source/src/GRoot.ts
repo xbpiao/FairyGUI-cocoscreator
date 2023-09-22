@@ -139,6 +139,11 @@ export class GRoot extends GComponent {
 
     public showModalWait(msg?: string): void {
         if (UIConfig.globalModalWaiting != null) {
+
+            if(this._modalWaitPane?.isDisposed) {
+                this._modalWaitPane = null;
+            }
+
             if (this._modalWaitPane == null)
                 this._modalWaitPane = UIPackage.createObjectFromURL(UIConfig.globalModalWaiting);
             this._modalWaitPane.setSize(this.width, this.height);
@@ -225,6 +230,18 @@ export class GRoot extends GComponent {
         }
 
         return pos;
+    }
+
+    public removeChildAt(index: number, dispose?: boolean): GObject {
+        let ret = super.removeChildAt(index, dispose);
+        
+        if(dispose) {
+            if(ret == this._modalWaitPane) {
+                this._modalWaitPane = null;
+            }
+        }
+
+        return ret;
     }
 
     public showPopup(popup: GObject, target?: GObject | null, dir?: PopupDirection | boolean): void {

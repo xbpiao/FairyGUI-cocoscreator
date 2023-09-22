@@ -1,4 +1,4 @@
-import { Sprite, Color, SpriteFrame } from "cc";
+import { Sprite, Color, SpriteFrame, isValid } from "cc";
 import { Image } from "./display/Image";
 import { FlipType, FillMethod, FillOrigin, ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -7,6 +7,7 @@ import { ByteBuffer } from "./utils/ByteBuffer";
 
 export class GImage extends GObject {
     public _content: Image;
+    private _contentPackageItem?: PackageItem;
 
     public constructor() {
         super();
@@ -83,9 +84,25 @@ export class GImage extends GObject {
             this._content.type = Sprite.Type.TILED;
             
         contentItem.loadAsync().then(()=>{
+            if(!isValid(this.node)) {
+                return;
+            }
+
             this._content.spriteFrame = <SpriteFrame>contentItem.asset;
             this._content.__update();
+        
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
         });
+    }
+
+    protected onDestroy(): void {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+
+        super.onDestroy();
     }
 
     protected handleGrayedChanged(): void {

@@ -37,6 +37,7 @@ export declare class GRoot extends GComponent {
     get hasModalWindow(): boolean;
     get modalWaiting(): boolean;
     getPopupPosition(popup: GObject, target?: GObject, dir?: PopupDirection | boolean, result?: Vec2): Vec2;
+    removeChildAt(index: number, dispose?: boolean): GObject;
     showPopup(popup: GObject, target?: GObject | null, dir?: PopupDirection | boolean): void;
     togglePopup(popup: GObject, target?: GObject, dir?: PopupDirection | boolean): void;
     hidePopup(popup?: GObject): void;

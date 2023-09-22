@@ -852,6 +852,11 @@ export class GObject {
     }
 
     public hitTest(globalPt: Vec2, forTouch?: boolean): GObject {
+        if(!this._node) {
+            console.error("FairyGUI: hitTest: node not set");
+            return null;
+        }
+
         if (forTouch == null) forTouch = true;
         if (forTouch && (this._touchDisabled || !this._touchable || !this._node.activeInHierarchy))
             return null;

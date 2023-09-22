@@ -1,4 +1,4 @@
-import { BitmapFont, Color, Font, Label, LabelOutline, LabelShadow, Node, Vec2 } from "cc";
+import { BitmapFont, Color, Font, Label, LabelOutline, LabelShadow, Node, Vec2, isValid } from "cc";
 import { Event as FUIEvent } from "./event/Event";
 import { AutoSizeType, ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -55,6 +55,9 @@ export class GTextField extends GObject {
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
+                    if (!isValid(this._node)) {
+                        return;
+                    }
                     this._realFont = asset;
                     this.updateFont();
                 });

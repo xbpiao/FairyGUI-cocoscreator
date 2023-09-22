@@ -324,6 +324,10 @@ export class GComponent extends GObject {
         return this._controllers;
     }
     onChildAdd(child, index) {
+        if (!child.node) {
+            console.error("child.node is null");
+            return;
+        }
         child.node.parent = this._container;
         child.node.active = child._finalVisible;
         if (this._buildingDisplayList)

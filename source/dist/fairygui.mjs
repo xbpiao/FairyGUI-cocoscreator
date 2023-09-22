@@ -1,4 +1,4 @@
-import { gfx, RenderComponent, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, view, ImageAsset, AudioClip, BufferAsset, assetManager, AssetManager, Asset, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox } from 'cc';
+import { gfx, RenderComponent, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, isValid, Size, view, assetManager, ImageAsset, AudioClip, BufferAsset, AssetManager, Asset, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, View, AudioSourceComponent, EditBox } from 'cc';
 import { EDITOR } from 'cc/env';
 
 var ButtonMode;
@@ -2483,6 +2483,8 @@ UIConfig.linkUnderline = true;
 //Default group name of UI node.<br/>
 UIConfig.defaultUILayer = Layers.Enum.UI_2D;
 UIConfig.defaultDelayLoad = true;
+// 有bug
+UIConfig.autoReleaseAssets = false;
 let _fontRegistry = {};
 function registerFont(name, font, bundle) {
     if (font instanceof Font)
@@ -3136,6 +3138,10 @@ class GObject {
             this._parent.setBoundsChangedFlag();
     }
     hitTest(globalPt, forTouch) {
+        if (!this._node) {
+            console.error("FairyGUI: hitTest: node not set");
+            return null;
+        }
         if (forTouch == null)
             forTouch = true;
         if (forTouch && (this._touchDisabled || !this._touchable || !this._node.activeInHierarchy))
@@ -4198,9 +4204,21 @@ class GImage extends GObject {
         else if (contentItem.scaleByTile)
             this._content.type = Sprite.Type.TILED;
         contentItem.loadAsync().then(() => {
+            if (!isValid(this.node)) {
+                return;
+            }
             this._content.spriteFrame = contentItem.asset;
             this._content.__update();
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
         });
+    }
+    onDestroy() {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+        super.onDestroy();
     }
     handleGrayedChanged() {
         this._content.grayscale = this._grayed;
@@ -4573,12 +4591,24 @@ class GMovieClip extends GObject {
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
         contentItem.loadAsync().then(() => {
+            if (!isValid(this.node)) {
+                return;
+            }
             this._content.interval = contentItem.interval;
             this._content.swing = contentItem.swing;
             this._content.repeatDelay = contentItem.repeatDelay;
             this._content.frames = contentItem.frames;
             this._content.smoothing = contentItem.smoothing;
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
         });
+    }
+    onDestroy() {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+        super.onDestroy();
     }
     setup_beforeAdd(buffer, beginPos) {
         super.setup_beforeAdd(buffer, beginPos);
@@ -4614,10 +4644,14 @@ function updateScaler() {
 }
 
 class PackageItem {
+    get ref() {
+        return this._ref;
+    }
     constructor() {
         this.width = 0;
         this.height = 0;
         this.__loaded = false;
+        this._ref = 0;
     }
     load() {
         return this.owner.getItemAsset(this);
@@ -4643,6 +4677,76 @@ class PackageItem {
     }
     toString() {
         return this.name;
+    }
+    addRef() {
+        var _a, _b;
+        this._ref++;
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.addRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.addRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i = 0; i < this.frames.length; i++) {
+                        var frame = this.frames[i];
+                        if (frame.texture) {
+                            frame.texture.addRef();
+                        }
+                        if (frame.altasPackageItem) {
+                            frame.altasPackageItem.addRef();
+                        }
+                    }
+                }
+                break;
+        }
+    }
+    decRef() {
+        var _a, _b;
+        if (this._ref > 0) {
+            this._ref--;
+        }
+        else {
+            return;
+        }
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i = 0; i < this.frames.length; i++) {
+                        var frame = this.frames[i];
+                        if (frame.texture) {
+                            frame.texture.decRef();
+                            if (UIConfig.autoReleaseAssets) {
+                                if (frame.texture.refCount == 0) {
+                                    assetManager.releaseAsset(frame.texture);
+                                }
+                            }
+                        }
+                        if (frame.altasPackageItem) {
+                            frame.altasPackageItem.decRef();
+                        }
+                    }
+                }
+                break;
+        }
+        if (UIConfig.autoReleaseAssets) {
+            if (this.asset && this.asset.refCount == 0) {
+                assetManager.releaseAsset(this.asset);
+            }
+            if (this._ref == 0) {
+                this.__loaded = false;
+                this.decoded = false;
+                this.frames = null;
+                this.asset = null;
+                this.parent = null;
+            }
+        }
+    }
+    dispose() {
+        if (this.asset) {
+            assetManager.releaseAsset(this.asset);
+            this.asset = null;
+        }
     }
 }
 
@@ -5143,6 +5247,11 @@ class UIPackage {
             else
                 onComplete = args[1];
         }
+        let p = _instById[path];
+        if (p) {
+            onComplete === null || onComplete === void 0 ? void 0 : onComplete.call(this, null, p);
+            return;
+        }
         delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err, asset) => {
@@ -5449,8 +5558,7 @@ class UIPackage {
         var cnt = this._items.length;
         for (var i = 0; i < cnt; i++) {
             var pi = this._items[i];
-            if (pi.asset)
-                assetManager.releaseAsset(pi.asset);
+            pi.dispose();
         }
     }
     get id() {
@@ -5501,6 +5609,7 @@ class UIPackage {
                     item.decoded = true;
                     var sprite = this._sprites[item.id];
                     if (sprite) {
+                        item.parent = sprite.atlas;
                         let atlasTexture = this.getItemAsset(sprite.atlas);
                         if (atlasTexture) {
                             let sf = new SpriteFrame();
@@ -5517,6 +5626,9 @@ class UIPackage {
                             }
                             item.asset = sf;
                         }
+                    }
+                    if (!UIConfig.autoReleaseAssets) {
+                        item.addRef();
                     }
                 }
                 break;
@@ -5540,18 +5652,25 @@ class UIPackage {
                     else {
                         item.asset = item.asset;
                     }
+                    if (!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                        item.addRef();
+                    }
                 }
                 break;
             case PackageItemType.Font:
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadFont(item);
+                    item.addRef();
                 }
                 break;
             case PackageItemType.MovieClip:
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadMovieClip(item);
+                    if (!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
                 }
                 break;
         }
@@ -5572,7 +5691,7 @@ class UIPackage {
     }
     getItemAssetAsync2(item) {
         return __awaiter$1(this, void 0, void 0, function* () {
-            if (item.__loaded || item.asset) {
+            if (item.__loaded) {
                 return item.asset;
             }
             switch (item.type) {
@@ -5581,6 +5700,7 @@ class UIPackage {
                         item.decoded = true;
                         var sprite = this._sprites[item.id];
                         if (sprite) {
+                            item.parent = sprite.atlas;
                             let atlasTexture = yield this.getItemAssetAsync2(sprite.atlas);
                             if (atlasTexture) {
                                 let sf = new SpriteFrame();
@@ -5599,6 +5719,9 @@ class UIPackage {
                             }
                         }
                         item.__loaded = true;
+                        if (!UIConfig.autoReleaseAssets) {
+                            item.addRef();
+                        }
                     }
                     break;
                 case PackageItemType.Atlas:
@@ -5621,6 +5744,9 @@ class UIPackage {
                         else {
                             item.asset = item.asset;
                         }
+                        if (!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                            item.addRef();
+                        }
                         item.__loaded = true;
                     }
                     break;
@@ -5628,6 +5754,7 @@ class UIPackage {
                     if (!item.decoded) {
                         item.decoded = true;
                         yield this.loadFontAsync(item);
+                        item.addRef();
                         item.__loaded = true;
                     }
                     break;
@@ -5636,6 +5763,9 @@ class UIPackage {
                         item.decoded = true;
                         yield this.loadMovieClipAsync(item);
                         item.__loaded = true;
+                        if (!UIConfig.autoReleaseAssets) {
+                            item.addRef();
+                        }
                     }
                     break;
             }
@@ -5707,11 +5837,12 @@ class UIPackage {
                 rect.width = buffer.readInt();
                 rect.height = buffer.readInt();
                 let addDelay = buffer.readInt() / 1000;
-                let frame = { rect: rect, addDelay: addDelay, texture: null };
+                let frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
                 spriteId = buffer.readS();
                 if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
                     let atlasTexture = null;
                     atlasTexture = (yield this.getItemAssetAsync2(sprite.atlas));
+                    frame.altasPackageItem = sprite.atlas;
                     if (atlasTexture) {
                         item.width / frame.rect.width;
                         let sf = new SpriteFrame();
@@ -5748,10 +5879,11 @@ class UIPackage {
             rect.width = buffer.readInt();
             rect.height = buffer.readInt();
             let addDelay = buffer.readInt() / 1000;
-            let frame = { rect: rect, addDelay: addDelay, texture: null };
+            let frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
             spriteId = buffer.readS();
             if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
                 let atlasTexture = this.getItemAsset(sprite.atlas);
+                frame.altasPackageItem = sprite.atlas;
                 if (atlasTexture) {
                     item.width / frame.rect.width;
                     let sf = new SpriteFrame();
@@ -6191,6 +6323,9 @@ class GTextField extends GObject {
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
+                    if (!isValid(this._node)) {
+                        return;
+                    }
                     this._realFont = asset;
                     this.updateFont();
                 });
@@ -6645,6 +6780,9 @@ class RichTextImageAtlas extends SpriteAtlas {
             let pi = UIPackage.getItemByURL(key);
             if (pi) {
                 yield pi.loadAsync();
+                if (!this.isValid) {
+                    return;
+                }
                 if (pi.type == PackageItemType.Image)
                     return pi.asset;
                 else if (pi.type == PackageItemType.MovieClip)
@@ -10746,6 +10884,10 @@ class GComponent extends GObject {
         return this._controllers;
     }
     onChildAdd(child, index) {
+        if (!child.node) {
+            console.error("child.node is null");
+            return;
+        }
         child.node.parent = this._container;
         child.node.active = child._finalVisible;
         if (this._buildingDisplayList)
@@ -11802,7 +11944,11 @@ class GRoot extends GComponent {
             this.setChildIndex(win, i);
     }
     showModalWait(msg) {
+        var _a;
         if (UIConfig.globalModalWaiting != null) {
+            if ((_a = this._modalWaitPane) === null || _a === void 0 ? void 0 : _a.isDisposed) {
+                this._modalWaitPane = null;
+            }
             if (this._modalWaitPane == null)
                 this._modalWaitPane = UIPackage.createObjectFromURL(UIConfig.globalModalWaiting);
             this._modalWaitPane.setSize(this.width, this.height);
@@ -11877,6 +12023,15 @@ class GRoot extends GComponent {
             }
         }
         return pos;
+    }
+    removeChildAt(index, dispose) {
+        let ret = super.removeChildAt(index, dispose);
+        if (dispose) {
+            if (ret == this._modalWaitPane) {
+                this._modalWaitPane = null;
+            }
+        }
+        return ret;
     }
     showPopup(popup, target, dir) {
         if (this._popupStack.length > 0) {
@@ -12268,6 +12423,10 @@ class GObjectPool {
 class GLoader extends GObject {
     constructor() {
         super();
+        /**
+         * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+         */
+        this.extension = "";
         this._frame = 0;
         this._node.name = "GLoader";
         this._playing = true;
@@ -12445,13 +12604,18 @@ class GLoader extends GObject {
             this.loadExternal();
     }
     loadFromPackage(itemURL) {
-        this._contentItem = UIPackage.getItemByURL(itemURL);
-        if (this._contentItem) {
+        let contentItem = UIPackage.getItemByURL(itemURL);
+        if (contentItem) {
+            this._contentItem = contentItem;
             this._contentItem = this._contentItem.getBranch();
             this.sourceWidth = this._contentItem.width;
             this.sourceHeight = this._contentItem.height;
             this._contentItem = this._contentItem.getHighResolution();
             this._contentItem.loadAsync().then(() => {
+                if (!isValid(this.node)) {
+                    return;
+                }
+                this._contentItem.addRef();
                 if (this._autoSize)
                     this.setSize(this.sourceWidth, this.sourceHeight);
                 if (this._contentItem.type == PackageItemType.Image) {
@@ -12503,35 +12667,60 @@ class GLoader extends GObject {
         let url = this.url;
         let callback = (err, asset) => {
             //因为是异步返回的，而这时可能url已经被改变，所以不能直接用返回的结果
-            if (this._url != url || !isValid(this._node))
+            if (this.url != url || !isValid(this._node))
                 return;
             if (err)
                 console.warn(err);
             if (asset instanceof SpriteFrame)
                 this.onExternalLoadSuccess(asset);
             else if (asset instanceof Texture2D) {
-                let sf = new SpriteFrame();
-                sf.texture = asset;
-                this.onExternalLoadSuccess(sf);
+                let sp = new SpriteFrame();
+                sp.texture = asset;
+                this.onExternalLoadSuccess(sp);
             }
             else if (asset instanceof ImageAsset) {
-                let sf = new SpriteFrame();
-                let texture = new Texture2D();
-                texture.image = asset;
-                sf.texture = texture;
-                this.onExternalLoadSuccess(sf);
+                let tex = new Texture2D();
+                tex.reset({
+                    width: asset.width,
+                    height: asset.height,
+                });
+                tex.uploadData(asset.data);
+                let sp = new SpriteFrame();
+                sp.texture = tex;
+                this.onExternalLoadSuccess(sp);
             }
         };
-        if (this._url.startsWith("http://")
-            || this._url.startsWith("https://")
-            || this._url.startsWith('/'))
-            assetManager.loadRemote(this._url, callback);
-        else
-            resources.load(this._url + "/spriteFrame", Asset, callback);
+        if (this.url.startsWith("http://")
+            || this.url.startsWith("https://")
+            || this.url.startsWith('/')) {
+            if (this.extension) {
+                assetManager.loadRemote(this.url, { ext: this.extension }, callback);
+            }
+            else {
+                assetManager.loadRemote(this.url, callback);
+            }
+        }
+        else {
+            resources.load(this.url, Asset, callback);
+        }
     }
     freeExternal(texture) {
+        if (texture) {
+            texture.decRef();
+            texture.texture.decRef();
+            if (UIConfig.autoReleaseAssets) {
+                if (texture.refCount == 0) {
+                    assetManager.releaseAsset(texture);
+                }
+                if (texture.texture.refCount == 0) {
+                    assetManager.releaseAsset(texture.texture);
+                }
+            }
+        }
     }
     onExternalLoadSuccess(texture) {
+        texture.addRef();
+        texture.texture.addRef();
         this._content.spriteFrame = texture;
         this._content.type = Sprite.Type.SIMPLE;
         this.sourceWidth = texture.getRect().width;
@@ -12652,6 +12841,9 @@ class GLoader extends GObject {
             if (texture)
                 this.freeExternal(texture);
         }
+        else {
+            this._contentItem.decRef();
+        }
         if (this._content2) {
             this._container.removeChild(this._content2.node);
             this._content2.dispose();
@@ -12660,6 +12852,10 @@ class GLoader extends GObject {
         this._content.frames = null;
         this._content.spriteFrame = null;
         this._contentItem = null;
+    }
+    onDestroy() {
+        this.clearContent();
+        super.onDestroy();
     }
     handleSizeChanged() {
         super.handleSizeChanged();

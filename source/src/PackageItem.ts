@@ -1,13 +1,15 @@
-import { Asset, dragonBones, Rect, Vec2 } from "cc";
+import { Asset, assetManager, dragonBones, Rect, Sprite, SpriteFrame, Vec2 } from "cc";
 import { Frame } from "./display/MovieClip";
 import { PixelHitTestData } from "./event/HitTest";
 import { PackageItemType, ObjectType } from "./FieldTypes";
 import { UIContentScaler } from "./UIContentScaler";
 import { UIPackage } from "./UIPackage";
 import { ByteBuffer } from "./utils/ByteBuffer";
+import { UIConfig } from "./UIConfig";
 
 export class PackageItem {
     public owner: UIPackage;
+    public parent?: PackageItem;
 
     public type: PackageItemType;
     public objectType?: ObjectType;
@@ -46,6 +48,11 @@ export class PackageItem {
     public skeletonAnchor?: Vec2;
     public atlasAsset?: dragonBones.DragonBonesAtlasAsset;
 
+    private _ref: number = 0;
+    public get ref(): number {
+        return this._ref;
+    }
+
     public constructor() {
     }
 
@@ -79,5 +86,83 @@ export class PackageItem {
 
     public toString(): string {
         return this.name;
+    }
+
+    public addRef(): void {
+        this._ref++;
+        this.parent?.addRef();
+
+        this.asset?.addRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i: number = 0; i < this.frames.length; i++) {
+                        var frame: Frame = this.frames[i];
+                        if(frame.texture) {
+                            frame.texture.addRef();
+                        }
+
+                        if(frame.altasPackageItem) {
+                            frame.altasPackageItem.addRef();
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    public decRef(): void {
+        if (this._ref > 0) {
+            this._ref--;
+        }else{
+            return;
+        }
+        
+        this.parent?.decRef();
+
+        this.asset?.decRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i: number = 0; i < this.frames.length; i++) {
+                        var frame: Frame = this.frames[i];
+                        if(frame.texture) {
+                            frame.texture.decRef();                        
+
+                            if(UIConfig.autoReleaseAssets) {
+                                if(frame.texture.refCount==0) {                                    
+                                    assetManager.releaseAsset(frame.texture);
+                                }
+                            }
+                        }
+
+                        if(frame.altasPackageItem) {
+                            frame.altasPackageItem.decRef();
+                        }
+                    }
+                }
+                break;
+        }
+
+        if(UIConfig.autoReleaseAssets) {
+            if(this.asset && this.asset.refCount==0) {
+                assetManager.releaseAsset(this.asset);
+            }
+
+            if(this._ref==0) {
+                this.__loaded = false;
+                this.decoded = false;
+                this.frames = null;
+                this.asset = null;
+                this.parent = null;
+            }
+        }
+    }
+
+    public dispose(): void {
+        if (this.asset) {
+            assetManager.releaseAsset(this.asset);
+            this.asset = null;
+        }
     }
 }

@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Color, Rect, Vec2 } from 'cc';
+import { _decorator, Component, Node, Color, Rect, Vec2, assetManager } from 'cc';
 const { ccclass, property } = _decorator;
 import * as fgui from "fairygui-cc";
 
@@ -48,6 +48,11 @@ export default class BasicDemo extends Component {
         fgui.UIConfig.popupMenu = "";
         fgui.UIConfig.buttonSound = "";
         fgui.UIPackage.removePackage("Basics");
+
+        if(fgui.UIConfig.autoReleaseAssets) {
+            assetManager.releaseUnusedAssets();
+        }
+        
     }
 
     private runDemo(evt: fgui.Event): void {

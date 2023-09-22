@@ -352,6 +352,7 @@ declare module 'fairygui-cc/GImage' {
         get fillAmount(): number;
         set fillAmount(value: number);
         constructFromResource(): void;
+        protected onDestroy(): void;
         protected handleGrayedChanged(): void;
         getProp(index: number): any;
         setProp(index: number, value: any): void;
@@ -384,6 +385,7 @@ declare module 'fairygui-cc/GMovieClip' {
         getProp(index: number): any;
         setProp(index: number, value: any): void;
         constructFromResource(): void;
+        protected onDestroy(): void;
         setup_beforeAdd(buffer: ByteBuffer, beginPos: number): void;
     }
 }
@@ -417,6 +419,7 @@ declare module 'fairygui-cc/GRoot' {
         get hasModalWindow(): boolean;
         get modalWaiting(): boolean;
         getPopupPosition(popup: GObject, target?: GObject, dir?: PopupDirection | boolean, result?: Vec2): Vec2;
+        removeChildAt(index: number, dispose?: boolean): GObject;
         showPopup(popup: GObject, target?: GObject | null, dir?: PopupDirection | boolean): void;
         togglePopup(popup: GObject, target?: GObject, dir?: PopupDirection | boolean): void;
         hidePopup(popup?: GObject): void;
@@ -601,6 +604,10 @@ declare module 'fairygui-cc/GLoader' {
     import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
     export class GLoader extends GObject {
         _content: MovieClip;
+        /**
+          * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+          */
+        extension: string;
         constructor();
         dispose(): void;
         get url(): string | null;
@@ -642,6 +649,7 @@ declare module 'fairygui-cc/GLoader' {
         protected freeExternal(texture: SpriteFrame): void;
         protected onExternalLoadSuccess(texture: SpriteFrame): void;
         protected onExternalLoadFailed(): void;
+        protected onDestroy(): void;
         protected handleSizeChanged(): void;
         protected handleAnchorChanged(): void;
         protected handleGrayedChanged(): void;
@@ -1688,6 +1696,7 @@ declare module 'fairygui-cc/PackageItem' {
     import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
     export class PackageItem {
         owner: UIPackage;
+        parent?: PackageItem;
         type: PackageItemType;
         objectType?: ObjectType;
         id: string;
@@ -1714,12 +1723,16 @@ declare module 'fairygui-cc/PackageItem' {
         extensionType?: any;
         skeletonAnchor?: Vec2;
         atlasAsset?: dragonBones.DragonBonesAtlasAsset;
+        get ref(): number;
         constructor();
         load(): Asset;
         loadAsync(): Promise<Asset>;
         getBranch(): PackageItem;
         getHighResolution(): PackageItem;
         toString(): string;
+        addRef(): void;
+        decRef(): void;
+        dispose(): void;
     }
 }
 
@@ -1783,6 +1796,7 @@ declare module 'fairygui-cc/UIConfig' {
         static linkUnderline: boolean;
         static defaultUILayer: number;
         static defaultDelayLoad: boolean;
+        static autoReleaseAssets: boolean;
     }
     export function registerFont(name: string, font: Font | string, bundle?: AssetManager.Bundle): void;
     export function getFontByName(name: string): Font;
@@ -2017,10 +2031,12 @@ declare module 'fairygui-cc/display/Image' {
 declare module 'fairygui-cc/display/MovieClip' {
     import { Rect, SpriteFrame } from "cc";
     import { Image } from "fairygui-cc/display/Image";
+    import { PackageItem } from "fairygui-cc/PackageItem";
     export interface Frame {
         rect: Rect;
         addDelay: number;
         texture: SpriteFrame | null;
+        altasPackageItem: PackageItem;
     }
     export class MovieClip extends Image {
         interval: number;

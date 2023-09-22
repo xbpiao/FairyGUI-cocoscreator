@@ -66,6 +66,8 @@ export class UIConfig {
     public static defaultUILayer: number = Layers.Enum.UI_2D;
 
     public static defaultDelayLoad: boolean = true;
+    // 有bug
+    public static autoReleaseAssets: boolean = false;
 }
 
 let _fontRegistry: { [index: string]: Font } = {};

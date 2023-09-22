@@ -9,6 +9,10 @@ import { UIPackage } from "./UIPackage";
 export class GLoader extends GObject {
     constructor() {
         super();
+        /**
+         * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+         */
+        this.extension = "";
         this._frame = 0;
         this._node.name = "GLoader";
         this._playing = true;
@@ -186,13 +190,18 @@ export class GLoader extends GObject {
             this.loadExternal();
     }
     loadFromPackage(itemURL) {
-        this._contentItem = UIPackage.getItemByURL(itemURL);
-        if (this._contentItem) {
+        let contentItem = UIPackage.getItemByURL(itemURL);
+        if (contentItem) {
+            this._contentItem = contentItem;
             this._contentItem = this._contentItem.getBranch();
             this.sourceWidth = this._contentItem.width;
             this.sourceHeight = this._contentItem.height;
             this._contentItem = this._contentItem.getHighResolution();
             this._contentItem.loadAsync().then(() => {
+                if (!isValid(this.node)) {
+                    return;
+                }
+                this._contentItem.addRef();
                 if (this._autoSize)
                     this.setSize(this.sourceWidth, this.sourceHeight);
                 if (this._contentItem.type == PackageItemType.Image) {
@@ -244,35 +253,60 @@ export class GLoader extends GObject {
         let url = this.url;
         let callback = (err, asset) => {
             //因为是异步返回的，而这时可能url已经被改变，所以不能直接用返回的结果
-            if (this._url != url || !isValid(this._node))
+            if (this.url != url || !isValid(this._node))
                 return;
             if (err)
                 console.warn(err);
             if (asset instanceof SpriteFrame)
                 this.onExternalLoadSuccess(asset);
             else if (asset instanceof Texture2D) {
-                let sf = new SpriteFrame();
-                sf.texture = asset;
-                this.onExternalLoadSuccess(sf);
+                let sp = new SpriteFrame();
+                sp.texture = asset;
+                this.onExternalLoadSuccess(sp);
             }
             else if (asset instanceof ImageAsset) {
-                let sf = new SpriteFrame();
-                let texture = new Texture2D();
-                texture.image = asset;
-                sf.texture = texture;
-                this.onExternalLoadSuccess(sf);
+                let tex = new Texture2D();
+                tex.reset({
+                    width: asset.width,
+                    height: asset.height,
+                });
+                tex.uploadData(asset.data);
+                let sp = new SpriteFrame();
+                sp.texture = tex;
+                this.onExternalLoadSuccess(sp);
             }
         };
-        if (this._url.startsWith("http://")
-            || this._url.startsWith("https://")
-            || this._url.startsWith('/'))
-            assetManager.loadRemote(this._url, callback);
-        else
-            resources.load(this._url + "/spriteFrame", Asset, callback);
+        if (this.url.startsWith("http://")
+            || this.url.startsWith("https://")
+            || this.url.startsWith('/')) {
+            if (this.extension) {
+                assetManager.loadRemote(this.url, { ext: this.extension }, callback);
+            }
+            else {
+                assetManager.loadRemote(this.url, callback);
+            }
+        }
+        else {
+            resources.load(this.url, Asset, callback);
+        }
     }
     freeExternal(texture) {
+        if (texture) {
+            texture.decRef();
+            texture.texture.decRef();
+            if (UIConfig.autoReleaseAssets) {
+                if (texture.refCount == 0) {
+                    assetManager.releaseAsset(texture);
+                }
+                if (texture.texture.refCount == 0) {
+                    assetManager.releaseAsset(texture.texture);
+                }
+            }
+        }
     }
     onExternalLoadSuccess(texture) {
+        texture.addRef();
+        texture.texture.addRef();
         this._content.spriteFrame = texture;
         this._content.type = Sprite.Type.SIMPLE;
         this.sourceWidth = texture.getRect().width;
@@ -393,6 +427,9 @@ export class GLoader extends GObject {
             if (texture)
                 this.freeExternal(texture);
         }
+        else {
+            this._contentItem.decRef();
+        }
         if (this._content2) {
             this._container.removeChild(this._content2.node);
             this._content2.dispose();
@@ -401,6 +438,10 @@ export class GLoader extends GObject {
         this._content.frames = null;
         this._content.spriteFrame = null;
         this._contentItem = null;
+    }
+    onDestroy() {
+        this.clearContent();
+        super.onDestroy();
     }
     handleSizeChanged() {
         super.handleSizeChanged();

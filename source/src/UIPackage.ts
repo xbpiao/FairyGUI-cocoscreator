@@ -155,6 +155,13 @@ export class UIPackage {
                 onComplete = args[1];
         }
 
+        
+        let p = _instById[path];
+        if(p) {
+            onComplete?.call(this, null, p);
+            return;
+        }
+
         delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
 
         bundle = bundle || resources;
@@ -521,8 +528,7 @@ export class UIPackage {
         var cnt: number = this._items.length;
         for (var i: number = 0; i < cnt; i++) {
             var pi: PackageItem = this._items[i];
-            if (pi.asset)
-                assetManager.releaseAsset(pi.asset);
+            pi.dispose();
         }
     }
 
@@ -586,6 +592,8 @@ export class UIPackage {
                     item.decoded = true;
                     var sprite: AtlasSprite = this._sprites[item.id];
                     if (sprite) {
+                        item.parent = sprite.atlas;
+
                         let atlasTexture: Texture2D = <Texture2D>this.getItemAsset(sprite.atlas);
                         if (atlasTexture) {
                             let sf = new SpriteFrame();
@@ -603,6 +611,10 @@ export class UIPackage {
                             }
                             item.asset = sf;
                         }
+                    }
+
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
                     }
                 }
                 break;
@@ -627,6 +639,9 @@ export class UIPackage {
                     else {
                         item.asset = (<AudioClip>item.asset);
                     }
+                    if(!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                        item.addRef();
+                    }
                 }
                 break;
 
@@ -634,6 +649,7 @@ export class UIPackage {
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadFont(item);
+                    item.addRef();
                 }
                 break;
 
@@ -641,6 +657,9 @@ export class UIPackage {
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadMovieClip(item);
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
                 }
                 break;
 
@@ -665,7 +684,7 @@ export class UIPackage {
     }
 
     public async getItemAssetAsync2(item: PackageItem) {
-        if(item.__loaded || item.asset) {
+        if(item.__loaded) {
             return item.asset;
         }
 
@@ -675,6 +694,8 @@ export class UIPackage {
                     item.decoded = true;
                     var sprite: AtlasSprite = this._sprites[item.id];
                     if (sprite) {
+                        item.parent = sprite.atlas;
+                        
                         let atlasTexture: Texture2D = <Texture2D>await this.getItemAssetAsync2(sprite.atlas);
                         if (atlasTexture) {
                             let sf = new SpriteFrame();
@@ -694,6 +715,10 @@ export class UIPackage {
                         }
                     }
                     item.__loaded = true;
+
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
                 }
                 break;
 
@@ -716,7 +741,11 @@ export class UIPackage {
                     }
                     else {
                         item.asset = (<AudioClip>item.asset);
-                    }                    
+                    }        
+                    
+                    if(!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                        item.addRef();
+                    }
                     item.__loaded = true;
                 }
                 break;
@@ -724,7 +753,8 @@ export class UIPackage {
             case PackageItemType.Font:
                 if (!item.decoded) {
                     item.decoded = true;
-                    await this.loadFontAsync(item);                    
+                    await this.loadFontAsync(item);  
+                    item.addRef();       
                     item.__loaded = true;
                 }
                 break;
@@ -734,6 +764,9 @@ export class UIPackage {
                     item.decoded = true;
                     await this.loadMovieClipAsync(item);
                     item.__loaded = true;
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
                 }
                 break;
 
@@ -821,12 +854,13 @@ export class UIPackage {
             rect.width = buffer.readInt();
             rect.height = buffer.readInt();
             let addDelay = buffer.readInt() / 1000;
-            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null };
+            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
             spriteId = buffer.readS();
 
             if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
                 let atlasTexture: Texture2D = null;
                 atlasTexture = <Texture2D> await this.getItemAssetAsync2(sprite.atlas);
+                frame.altasPackageItem = sprite.atlas;
                 
                 if (atlasTexture) {
                     let sx: number = item.width / frame.rect.width;
@@ -873,11 +907,13 @@ export class UIPackage {
             rect.width = buffer.readInt();
             rect.height = buffer.readInt();
             let addDelay = buffer.readInt() / 1000;
-            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null };
+            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
             spriteId = buffer.readS();
 
             if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
                 let atlasTexture: Texture2D = <Texture2D> this.getItemAsset(sprite.atlas);
+                frame.altasPackageItem = sprite.atlas;
+                
                 if (atlasTexture) {
                     let sx: number = item.width / frame.rect.width;
                     let sf = new SpriteFrame();

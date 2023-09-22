@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, assetManager, Component, Node } from 'cc';
 const { ccclass, property } = _decorator;
 import * as fgui from "fairygui-cc";
 
@@ -22,6 +22,9 @@ export default class BagDemo extends Component {
 
     onDestroy() {
         fgui.UIPackage.removePackage("Bag");
+        if(fgui.UIConfig.autoReleaseAssets) {
+            assetManager.releaseUnusedAssets();
+        }
     }
 }
 

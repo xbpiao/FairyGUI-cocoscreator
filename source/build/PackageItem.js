@@ -1,9 +1,16 @@
+import { assetManager } from "cc";
+import { PackageItemType } from "./FieldTypes";
 import { UIContentScaler } from "./UIContentScaler";
+import { UIConfig } from "./UIConfig";
 export class PackageItem {
+    get ref() {
+        return this._ref;
+    }
     constructor() {
         this.width = 0;
         this.height = 0;
         this.__loaded = false;
+        this._ref = 0;
     }
     load() {
         return this.owner.getItemAsset(this);
@@ -29,5 +36,75 @@ export class PackageItem {
     }
     toString() {
         return this.name;
+    }
+    addRef() {
+        var _a, _b;
+        this._ref++;
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.addRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.addRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i = 0; i < this.frames.length; i++) {
+                        var frame = this.frames[i];
+                        if (frame.texture) {
+                            frame.texture.addRef();
+                        }
+                        if (frame.altasPackageItem) {
+                            frame.altasPackageItem.addRef();
+                        }
+                    }
+                }
+                break;
+        }
+    }
+    decRef() {
+        var _a, _b;
+        if (this._ref > 0) {
+            this._ref--;
+        }
+        else {
+            return;
+        }
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i = 0; i < this.frames.length; i++) {
+                        var frame = this.frames[i];
+                        if (frame.texture) {
+                            frame.texture.decRef();
+                            if (UIConfig.autoReleaseAssets) {
+                                if (frame.texture.refCount == 0) {
+                                    assetManager.releaseAsset(frame.texture);
+                                }
+                            }
+                        }
+                        if (frame.altasPackageItem) {
+                            frame.altasPackageItem.decRef();
+                        }
+                    }
+                }
+                break;
+        }
+        if (UIConfig.autoReleaseAssets) {
+            if (this.asset && this.asset.refCount == 0) {
+                assetManager.releaseAsset(this.asset);
+            }
+            if (this._ref == 0) {
+                this.__loaded = false;
+                this.decoded = false;
+                this.frames = null;
+                this.asset = null;
+                this.parent = null;
+            }
+        }
+    }
+    dispose() {
+        if (this.asset) {
+            assetManager.releaseAsset(this.asset);
+            this.asset = null;
+        }
     }
 }

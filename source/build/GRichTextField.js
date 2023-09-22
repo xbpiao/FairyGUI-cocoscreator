@@ -34,6 +34,9 @@ export class RichTextImageAtlas extends SpriteAtlas {
             let pi = UIPackage.getItemByURL(key);
             if (pi) {
                 yield pi.loadAsync();
+                if (!this.isValid) {
+                    return;
+                }
                 if (pi.type == PackageItemType.Image)
                     return pi.asset;
                 else if (pi.type == PackageItemType.MovieClip)
