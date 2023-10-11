@@ -23,6 +23,7 @@ export default class MainMenu extends Component {
     private _view: fgui.GComponent = null!;
 
     onLoad() {
+        fgui.UIConfig.autoReleaseAssets = true;
         fgui.UIPackage.loadPackage("UI/MainMenu", this.onUILoaded.bind(this));
     }
 
