@@ -4213,12 +4213,12 @@ class GImage extends GObject {
             this._contentPackageItem.addRef();
         });
     }
-    onDestroy() {
+    dispose() {
         if (this._contentPackageItem) {
             this._contentPackageItem.decRef();
             this._contentPackageItem = null;
         }
-        super.onDestroy();
+        super.dispose();
     }
     handleGrayedChanged() {
         this._content.grayscale = this._grayed;
@@ -4603,12 +4603,12 @@ class GMovieClip extends GObject {
             this._contentPackageItem.addRef();
         });
     }
-    onDestroy() {
+    dispose() {
         if (this._contentPackageItem) {
             this._contentPackageItem.decRef();
             this._contentPackageItem = null;
         }
-        super.onDestroy();
+        super.dispose();
     }
     setup_beforeAdd(buffer, beginPos) {
         super.setup_beforeAdd(buffer, beginPos);
@@ -4642,6 +4642,27 @@ function updateScaler() {
     else
         UIContentScaler.scaleLevel = 0;
 }
+
+class RefMannager {
+    static deleteItem(item) {
+        this._deletes.push(item);
+    }
+    static update(dt) {
+        this._timer += dt;
+        if (this._timer >= 10) {
+            this._timer = 0;
+            for (let i = this._deletes.length - 1; i >= 0; i--) {
+                let item = this._deletes[i];
+                if (item.ref <= 0) {
+                    this._deletes.splice(i, 1);
+                    item.doRelease();
+                }
+            }
+        }
+    }
+}
+RefMannager._timer = 0;
+RefMannager._deletes = [];
 
 class PackageItem {
     get ref() {
@@ -4699,23 +4720,14 @@ class PackageItem {
                 break;
         }
     }
-    decRef() {
-        var _a, _b;
-        if (this._ref > 0) {
-            this._ref--;
-        }
-        else {
-            return;
-        }
-        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
-        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef();
+    doRelease() {
         switch (this.type) {
             case PackageItemType.MovieClip:
                 if (this.frames) {
                     for (var i = 0; i < this.frames.length; i++) {
                         var frame = this.frames[i];
                         if (frame.texture) {
-                            frame.texture.decRef();
+                            frame.texture.decRef(true);
                             if (UIConfig.autoReleaseAssets) {
                                 if (frame.texture.refCount == 0) {
                                     assetManager.releaseAsset(frame.texture);
@@ -4742,9 +4754,28 @@ class PackageItem {
             }
         }
     }
-    dispose() {
+    decRef() {
+        var _a, _b;
+        if (this._ref > 0) {
+            this._ref--;
+        }
+        else {
+            return;
+        }
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef(false);
+        if (this._ref <= 0) {
+            RefMannager.deleteItem(this);
+        }
+    }
+    dispose(force = false) {
         if (this.asset) {
-            assetManager.releaseAsset(this.asset);
+            if (force) {
+                assetManager.releaseAsset(this.asset);
+            }
+            else {
+                this.asset.decRef(true);
+            }
             this.asset = null;
         }
     }
@@ -5298,13 +5329,13 @@ class UIPackage {
                 taskComplete(null);
         });
     }
-    static removePackage(packageIdOrName) {
+    static removePackage(packageIdOrName, disposeAll = false) {
         var pkg = _instById[packageIdOrName];
         if (!pkg)
             pkg = _instByName[packageIdOrName];
         if (!pkg)
             throw "No package found: " + packageIdOrName;
-        pkg.dispose();
+        pkg.dispose(disposeAll);
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
         if (pkg._path)
@@ -5554,11 +5585,11 @@ class UIPackage {
             }
         }
     }
-    dispose() {
+    dispose(force = false) {
         var cnt = this._items.length;
         for (var i = 0; i < cnt; i++) {
             var pi = this._items[i];
-            pi.dispose();
+            pi.dispose(force);
         }
     }
     get id() {
@@ -12201,6 +12232,12 @@ class GRoot extends GComponent {
     handlePositionChanged() {
         //nothing here
     }
+    onUpdate() {
+        super.onUpdate();
+        if (!this.touchTarget) {
+            RefMannager.update(game.frameTime);
+        }
+    }
 }
 Decls$1.GRoot = GRoot;
 
@@ -12450,9 +12487,12 @@ class GLoader extends GObject {
             if (this._content.spriteFrame)
                 this.freeExternal(this._content.spriteFrame);
         }
-        if (this._content2)
+        if (this._content2) {
             this._content2.dispose();
+            this._content2 = null;
+        }
         super.dispose();
+        this.clearContent();
     }
     get url() {
         return this._url;
@@ -12852,10 +12892,6 @@ class GLoader extends GObject {
         this._content.frames = null;
         this._content.spriteFrame = null;
         this._contentItem = null;
-    }
-    onDestroy() {
-        this.clearContent();
-        super.onDestroy();
     }
     handleSizeChanged() {
         super.handleSizeChanged();

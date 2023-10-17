@@ -6,6 +6,7 @@ import { UIContentScaler } from "./UIContentScaler";
 import { UIPackage } from "./UIPackage";
 import { ByteBuffer } from "./utils/ByteBuffer";
 import { UIConfig } from "./UIConfig";
+import { RefMannager } from "./RefManager";
 
 export class PackageItem {
     public owner: UIPackage;
@@ -111,23 +112,14 @@ export class PackageItem {
         }
     }
 
-    public decRef(): void {
-        if (this._ref > 0) {
-            this._ref--;
-        }else{
-            return;
-        }
-        
-        this.parent?.decRef();
-
-        this.asset?.decRef();
+    public doRelease(): void {        
         switch (this.type) {
             case PackageItemType.MovieClip:
                 if (this.frames) {
                     for (var i: number = 0; i < this.frames.length; i++) {
                         var frame: Frame = this.frames[i];
                         if(frame.texture) {
-                            frame.texture.decRef();                        
+                            frame.texture.decRef(true);              
 
                             if(UIConfig.autoReleaseAssets) {
                                 if(frame.texture.refCount==0) {                                    
@@ -159,9 +151,28 @@ export class PackageItem {
         }
     }
 
-    public dispose(): void {
+    public decRef(): void {
+        if (this._ref > 0) {
+            this._ref--;
+        }else{
+            return;
+        }
+        
+        this.parent?.decRef();
+        this.asset?.decRef(false);
+
+        if(this._ref <= 0) {
+            RefMannager.deleteItem(this);
+        }
+    }
+
+    public dispose(force: boolean = false): void {
         if (this.asset) {
-            assetManager.releaseAsset(this.asset);
+            if(force) {
+                assetManager.releaseAsset(this.asset);
+            }else{
+                this.asset.decRef(true);
+            }
             this.asset = null;
         }
     }

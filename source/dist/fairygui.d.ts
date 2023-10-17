@@ -352,7 +352,7 @@ declare module 'fairygui-cc/GImage' {
         get fillAmount(): number;
         set fillAmount(value: number);
         constructFromResource(): void;
-        protected onDestroy(): void;
+        dispose(): void;
         protected handleGrayedChanged(): void;
         getProp(index: number): any;
         setProp(index: number, value: any): void;
@@ -385,7 +385,7 @@ declare module 'fairygui-cc/GMovieClip' {
         getProp(index: number): any;
         setProp(index: number, value: any): void;
         constructFromResource(): void;
-        protected onDestroy(): void;
+        dispose(): void;
         setup_beforeAdd(buffer: ByteBuffer, beginPos: number): void;
     }
 }
@@ -432,6 +432,7 @@ declare module 'fairygui-cc/GRoot' {
         playOneShotSound(clip: AudioClip, volumeScale?: number): void;
         onWinResize(): void;
         handlePositionChanged(): void;
+        protected onUpdate(): void;
     }
 }
 
@@ -649,7 +650,6 @@ declare module 'fairygui-cc/GLoader' {
         protected freeExternal(texture: SpriteFrame): void;
         protected onExternalLoadSuccess(texture: SpriteFrame): void;
         protected onExternalLoadFailed(): void;
-        protected onDestroy(): void;
         protected handleSizeChanged(): void;
         protected handleAnchorChanged(): void;
         protected handleGrayedChanged(): void;
@@ -1655,14 +1655,14 @@ declare module 'fairygui-cc/UIPackage' {
                 * @param onComplete 载入成功后的回调.
                 */
             static loadPackage(path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: Error, pkg: UIPackage) => void): void;
-            static removePackage(packageIdOrName: string): void;
+            static removePackage(packageIdOrName: string, disposeAll?: boolean): void;
             static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject;
             static createObjectFromURL(url: string, userClass?: new () => GObject): GObject;
             static getItemURL(pkgName: string, resName: string): string;
             static getItemByURL(url: string): PackageItem;
             static normalizeURL(url: string): string;
             static setStringsSource(source: string): void;
-            dispose(): void;
+            dispose(force?: boolean): void;
             get id(): string;
             get name(): string;
             get path(): string;
@@ -1731,8 +1731,9 @@ declare module 'fairygui-cc/PackageItem' {
         getHighResolution(): PackageItem;
         toString(): string;
         addRef(): void;
+        doRelease(): void;
         decRef(): void;
-        dispose(): void;
+        dispose(force?: boolean): void;
     }
 }
 

@@ -153,13 +153,13 @@ export class GMovieClip extends GObject {
         });
     }
 
-    protected onDestroy(): void {
+    dispose(): void {
         if (this._contentPackageItem) {
             this._contentPackageItem.decRef();
             this._contentPackageItem = null;
         }
 
-        super.onDestroy();
+        super.dispose();
     }
 
     public setup_beforeAdd(buffer: ByteBuffer, beginPos: number): void {

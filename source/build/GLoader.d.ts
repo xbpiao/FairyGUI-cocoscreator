@@ -71,7 +71,6 @@ export declare class GLoader extends GObject {
     private clearErrorState;
     private updateLayout;
     private clearContent;
-    protected onDestroy(): void;
     protected handleSizeChanged(): void;
     protected handleAnchorChanged(): void;
     protected handleGrayedChanged(): void;

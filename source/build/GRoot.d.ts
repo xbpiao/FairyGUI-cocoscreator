@@ -53,4 +53,5 @@ export declare class GRoot extends GComponent {
     private onTouchBegin_1;
     onWinResize(): void;
     handlePositionChanged(): void;
+    protected onUpdate(): void;
 }

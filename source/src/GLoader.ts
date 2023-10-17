@@ -63,9 +63,13 @@ export class GLoader extends GObject {
             if (this._content.spriteFrame)
                 this.freeExternal(this._content.spriteFrame);
         }
-        if (this._content2)
+        if (this._content2) {
             this._content2.dispose();
+            this._content2 = null;
+        }
         super.dispose();
+
+        this.clearContent();
     }
 
     public get url(): string | null {
@@ -530,11 +534,6 @@ export class GLoader extends GObject {
         this._content.frames = null;
         this._content.spriteFrame = null;
         this._contentItem = null;
-    }
-
-    protected onDestroy(): void {
-        this.clearContent();
-        super.onDestroy();
     }
 
     protected handleSizeChanged(): void {

@@ -1,4 +1,4 @@
-import { director, Color, Vec2, View, AudioSourceComponent } from "cc";
+import { director, Color, Vec2, View, AudioSourceComponent, game } from "cc";
 import { EDITOR } from "cc/env";
 import { InputProcessor } from "./event/InputProcessor";
 import { RelationType, PopupDirection } from "./FieldTypes";
@@ -9,6 +9,7 @@ import { UIConfig } from "./UIConfig";
 import { UIContentScaler, updateScaler } from "./UIContentScaler";
 import { UIPackage } from "./UIPackage";
 import { Window } from "./Window";
+import { RefMannager } from "./RefManager";
 export class GRoot extends GComponent {
     static get inst() {
         if (!GRoot._inst)
@@ -354,6 +355,12 @@ export class GRoot extends GComponent {
     }
     handlePositionChanged() {
         //nothing here
+    }
+    onUpdate() {
+        super.onUpdate();
+        if (!this.touchTarget) {
+            RefMannager.update(game.frameTime);
+        }
     }
 }
 Decls.GRoot = GRoot;

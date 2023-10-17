@@ -20,7 +20,7 @@ export declare class GImage extends GObject {
     get fillAmount(): number;
     set fillAmount(value: number);
     constructFromResource(): void;
-    protected onDestroy(): void;
+    dispose(): void;
     protected handleGrayedChanged(): void;
     getProp(index: number): any;
     setProp(index: number, value: any): void;

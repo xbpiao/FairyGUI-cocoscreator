@@ -151,13 +151,13 @@ export class UIPackage {
                 taskComplete(null, null);
         });
     }
-    static removePackage(packageIdOrName) {
+    static removePackage(packageIdOrName, disposeAll = false) {
         var pkg = _instById[packageIdOrName];
         if (!pkg)
             pkg = _instByName[packageIdOrName];
         if (!pkg)
             throw "No package found: " + packageIdOrName;
-        pkg.dispose();
+        pkg.dispose(disposeAll);
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
         if (pkg._path)
@@ -407,11 +407,11 @@ export class UIPackage {
             }
         }
     }
-    dispose() {
+    dispose(force = false) {
         var cnt = this._items.length;
         for (var i = 0; i < cnt; i++) {
             var pi = this._items[i];
-            pi.dispose();
+            pi.dispose(force);
         }
     }
     get id() {

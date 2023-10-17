@@ -96,13 +96,13 @@ export class GImage extends GObject {
         });
     }
 
-    protected onDestroy(): void {
+    dispose(): void {
         if (this._contentPackageItem) {
             this._contentPackageItem.decRef();
             this._contentPackageItem = null;
         }
 
-        super.onDestroy();
+        super.dispose();
     }
 
     protected handleGrayedChanged(): void {

@@ -1,4 +1,4 @@
-import { director, Color, view, Vec2, AudioClip, View, AudioSourceComponent, Event, Node } from "cc";
+import { director, Color, view, Vec2, AudioClip, View, AudioSourceComponent, Event, Node, game } from "cc";
 import { EDITOR } from "cc/env";
 import { InputProcessor } from "./event/InputProcessor";
 import { RelationType, PopupDirection } from "./FieldTypes";
@@ -10,6 +10,7 @@ import { UIContentScaler, updateScaler } from "./UIContentScaler";
 import { UIPackage } from "./UIPackage";
 import { Window } from "./Window";
 import { Event as FUIEvent } from "./event/Event";
+import { RefMannager } from "./RefManager";
 
 export class GRoot extends GComponent {
     private _modalLayer: GGraph;
@@ -443,6 +444,14 @@ export class GRoot extends GComponent {
 
     public handlePositionChanged() {
         //nothing here
+    }
+
+    protected onUpdate(): void {
+        super.onUpdate();
+
+        if(!this.touchTarget) {
+            RefMannager.update(game.frameTime);
+        }
     }
 }
 

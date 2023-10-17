@@ -2,6 +2,7 @@ import { assetManager } from "cc";
 import { PackageItemType } from "./FieldTypes";
 import { UIContentScaler } from "./UIContentScaler";
 import { UIConfig } from "./UIConfig";
+import { RefMannager } from "./RefManager";
 export class PackageItem {
     get ref() {
         return this._ref;
@@ -58,23 +59,14 @@ export class PackageItem {
                 break;
         }
     }
-    decRef() {
-        var _a, _b;
-        if (this._ref > 0) {
-            this._ref--;
-        }
-        else {
-            return;
-        }
-        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
-        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef();
+    doRelease() {
         switch (this.type) {
             case PackageItemType.MovieClip:
                 if (this.frames) {
                     for (var i = 0; i < this.frames.length; i++) {
                         var frame = this.frames[i];
                         if (frame.texture) {
-                            frame.texture.decRef();
+                            frame.texture.decRef(true);
                             if (UIConfig.autoReleaseAssets) {
                                 if (frame.texture.refCount == 0) {
                                     assetManager.releaseAsset(frame.texture);
@@ -101,9 +93,28 @@ export class PackageItem {
             }
         }
     }
-    dispose() {
+    decRef() {
+        var _a, _b;
+        if (this._ref > 0) {
+            this._ref--;
+        }
+        else {
+            return;
+        }
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef(false);
+        if (this._ref <= 0) {
+            RefMannager.deleteItem(this);
+        }
+    }
+    dispose(force = false) {
         if (this.asset) {
-            assetManager.releaseAsset(this.asset);
+            if (force) {
+                assetManager.releaseAsset(this.asset);
+            }
+            else {
+                this.asset.decRef(true);
+            }
             this.asset = null;
         }
     }

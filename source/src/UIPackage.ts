@@ -218,13 +218,13 @@ export class UIPackage {
         });
     }
 
-    public static removePackage(packageIdOrName: string): void {
+    public static removePackage(packageIdOrName: string, disposeAll: boolean = false): void {
         var pkg: UIPackage = _instById[packageIdOrName];
         if (!pkg)
             pkg = _instByName[packageIdOrName];
         if (!pkg)
             throw "No package found: " + packageIdOrName;
-        pkg.dispose();
+        pkg.dispose(disposeAll);
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
         if (pkg._path)
@@ -524,11 +524,11 @@ export class UIPackage {
         }
     }
 
-    public dispose(): void {
+    public dispose(force: boolean = false): void {
         var cnt: number = this._items.length;
         for (var i: number = 0; i < cnt; i++) {
             var pi: PackageItem = this._items[i];
-            pi.dispose();
+            pi.dispose(force);
         }
     }
 

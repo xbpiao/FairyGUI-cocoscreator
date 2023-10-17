@@ -66,7 +66,7 @@ export declare class UIPackage {
      * @param onComplete 载入成功后的回调.
      */
     static loadPackage(path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: Error, pkg: UIPackage) => void): void;
-    static removePackage(packageIdOrName: string): void;
+    static removePackage(packageIdOrName: string, disposeAll?: boolean): void;
     static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject;
     static createObjectFromURL(url: string, userClass?: new () => GObject): GObject;
     static getItemURL(pkgName: string, resName: string): string;
@@ -74,7 +74,7 @@ export declare class UIPackage {
     static normalizeURL(url: string): string;
     static setStringsSource(source: string): void;
     private loadPackage;
-    dispose(): void;
+    dispose(force?: boolean): void;
     get id(): string;
     get name(): string;
     get path(): string;

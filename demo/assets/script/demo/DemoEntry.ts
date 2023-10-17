@@ -20,6 +20,7 @@ export default class DemoEntry extends Component {
     onDemoStart(demo: Component) {
         this._currentDemo = demo;
         this._closeButton = fgui.UIPackage.createObject("MainMenu", "CloseButton");
+        this._closeButton.name = "CloseButton";
         this._closeButton.setPosition(fgui.GRoot.inst.width - this._closeButton.width - 10, fgui.GRoot.inst.height - this._closeButton.height - 10);
         this._closeButton.addRelation(fgui.GRoot.inst, fgui.RelationType.Right_Right);
         this._closeButton.addRelation(fgui.GRoot.inst, fgui.RelationType.Bottom_Bottom);

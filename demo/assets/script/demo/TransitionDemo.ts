@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, assetManager, Component, Node } from 'cc';
 const { ccclass, property } = _decorator;
 import * as fgui from "fairygui-cc";
 
@@ -93,6 +93,19 @@ export default class TransitionDemo extends Component {
             .onUpdate((tweener: fgui.GTweener) => {
                 this._g5.getChild("value").text = "" + Math.floor(tweener.value.x);
             });
+    }
+
+    protected onDestroy(): void {
+        this._g1.dispose();
+        this._g2.dispose();
+        this._g3.dispose();
+        this._g4.dispose();
+        this._g5.dispose();
+        this._g6.dispose();
+
+        if(fgui.UIConfig.autoReleaseAssets) {
+            assetManager.releaseUnusedAssets();
+        }
     }
 }
 

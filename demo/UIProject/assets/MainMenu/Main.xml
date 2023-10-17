@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component size="1136,640">
   <displayList>
-    <graph id="n3_txxc" name="n3" xy="0,0" size="1136,640" locked="true" type="rect" lineSize="0" fillColor="#ff333333">
+    <graph id="n3_txxc" name="n3" xy="0,0" size="1136,640" type="rect" lineSize="0" fillColor="#ff333333">
       <relation target="" sidePair="width-width,height-height"/>
     </graph>
     <component id="n1_rftu" name="n1" src="rftu4" fileName="Button.xml" xy="104,75" size="235,51">

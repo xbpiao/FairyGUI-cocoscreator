@@ -42,6 +42,7 @@ export declare class PackageItem {
     getHighResolution(): PackageItem;
     toString(): string;
     addRef(): void;
+    doRelease(): void;
     decRef(): void;
-    dispose(): void;
+    dispose(force?: boolean): void;
 }
