@@ -1,3 +1,12 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 import { BitmapFont, RichText, SpriteAtlas } from "cc";
 import { PackageItemType, AutoSizeType } from "./FieldTypes";
 import { GTextField } from "./GTextField";
@@ -16,6 +25,22 @@ export class RichTextImageAtlas extends SpriteAtlas {
                 return pi.frames[0].texture;
         }
         return super.getSpriteFrame(key);
+    }
+    getSpriteFrameAsync(key) {
+        const _super = Object.create(null, {
+            getSpriteFrame: { get: () => super.getSpriteFrame }
+        });
+        return __awaiter(this, void 0, void 0, function* () {
+            let pi = UIPackage.getItemByURL(key);
+            if (pi) {
+                yield pi.loadAsync();
+                if (pi.type == PackageItemType.Image)
+                    return pi.asset;
+                else if (pi.type == PackageItemType.MovieClip)
+                    return pi.frames[0].texture;
+            }
+            return _super.getSpriteFrame.call(this, key);
+        });
     }
 }
 const imageAtlas = new RichTextImageAtlas();

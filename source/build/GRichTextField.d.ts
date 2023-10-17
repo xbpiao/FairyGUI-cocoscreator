@@ -2,6 +2,7 @@ import { HorizontalTextAlignment, RichText, SpriteAtlas, SpriteFrame } from "cc"
 import { GTextField } from "./GTextField";
 export declare class RichTextImageAtlas extends SpriteAtlas {
     getSpriteFrame(key: string): SpriteFrame;
+    getSpriteFrameAsync(key: string): Promise<SpriteFrame>;
 }
 export declare class GRichTextField extends GTextField {
     _richText: RichText;

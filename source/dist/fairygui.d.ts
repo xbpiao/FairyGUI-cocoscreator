@@ -352,6 +352,7 @@ declare module 'fairygui-cc/GImage' {
         get fillAmount(): number;
         set fillAmount(value: number);
         constructFromResource(): void;
+        dispose(): void;
         protected handleGrayedChanged(): void;
         getProp(index: number): any;
         setProp(index: number, value: any): void;
@@ -384,6 +385,7 @@ declare module 'fairygui-cc/GMovieClip' {
         getProp(index: number): any;
         setProp(index: number, value: any): void;
         constructFromResource(): void;
+        dispose(): void;
         setup_beforeAdd(buffer: ByteBuffer, beginPos: number): void;
     }
 }
@@ -417,6 +419,7 @@ declare module 'fairygui-cc/GRoot' {
         get hasModalWindow(): boolean;
         get modalWaiting(): boolean;
         getPopupPosition(popup: GObject, target?: GObject, dir?: PopupDirection | boolean, result?: Vec2): Vec2;
+        removeChildAt(index: number, dispose?: boolean): GObject;
         showPopup(popup: GObject, target?: GObject | null, dir?: PopupDirection | boolean): void;
         togglePopup(popup: GObject, target?: GObject, dir?: PopupDirection | boolean): void;
         hidePopup(popup?: GObject): void;
@@ -429,6 +432,7 @@ declare module 'fairygui-cc/GRoot' {
         playOneShotSound(clip: AudioClip, volumeScale?: number): void;
         onWinResize(): void;
         handlePositionChanged(): void;
+        protected onUpdate(): void;
     }
 }
 
@@ -531,6 +535,7 @@ declare module 'fairygui-cc/GRichTextField' {
     import { GTextField } from "fairygui-cc/GTextField";
     export class RichTextImageAtlas extends SpriteAtlas {
         getSpriteFrame(key: string): SpriteFrame;
+        getSpriteFrameAsync(key: string): Promise<SpriteFrame>;
     }
     export class GRichTextField extends GTextField {
         _richText: RichText;
@@ -600,6 +605,10 @@ declare module 'fairygui-cc/GLoader' {
     import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
     export class GLoader extends GObject {
         _content: MovieClip;
+        /**
+          * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+          */
+        extension: string;
         constructor();
         dispose(): void;
         get url(): string | null;
@@ -1625,6 +1634,15 @@ declare module 'fairygui-cc/UIPackage' {
                 */
             static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
             /**
+                * 载入一个包。包的资源从Asset Bundle加载.
+                * @param bundle Asset Bundle 对象.
+                * @param path 资源相对 Asset Bundle 目录的路径.
+                * @param onProgress 加载进度回调.
+                * @param onComplete 载入成功后的回调.
+                * @param delayLoad 延迟加载资源.
+                */
+            static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void, delayLoad?: boolean): void;
+            /**
                 * 载入一个包。包的资源从resources加载.
                 * @param path 资源相对 resources 的路径.
                 * @param onComplete 载入成功后的回调.
@@ -1637,14 +1655,14 @@ declare module 'fairygui-cc/UIPackage' {
                 * @param onComplete 载入成功后的回调.
                 */
             static loadPackage(path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: Error, pkg: UIPackage) => void): void;
-            static removePackage(packageIdOrName: string): void;
+            static removePackage(packageIdOrName: string, disposeAll?: boolean): void;
             static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject;
             static createObjectFromURL(url: string, userClass?: new () => GObject): GObject;
             static getItemURL(pkgName: string, resName: string): string;
             static getItemByURL(url: string): PackageItem;
             static normalizeURL(url: string): string;
             static setStringsSource(source: string): void;
-            dispose(): void;
+            dispose(force?: boolean): void;
             get id(): string;
             get name(): string;
             get path(): string;
@@ -1655,6 +1673,7 @@ declare module 'fairygui-cc/UIPackage' {
             getItemByName(resName: string): PackageItem;
             getItemAssetByName(resName: string): Asset;
             getItemAsset(item: PackageItem): Asset;
+            getItemAssetAsync2(item: PackageItem): Promise<Asset>;
             getItemAssetAsync(item: PackageItem, onComplete?: (err: Error, item: PackageItem) => void): void;
             loadAllAssets(): void;
     }
@@ -1677,6 +1696,7 @@ declare module 'fairygui-cc/PackageItem' {
     import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
     export class PackageItem {
         owner: UIPackage;
+        parent?: PackageItem;
         type: PackageItemType;
         objectType?: ObjectType;
         id: string;
@@ -1688,6 +1708,7 @@ declare module 'fairygui-cc/PackageItem' {
         loading?: Array<Function>;
         rawData?: ByteBuffer;
         asset?: Asset;
+        __loaded: boolean;
         highResolution?: Array<string>;
         branches?: Array<string>;
         scale9Grid?: Rect;
@@ -1702,11 +1723,17 @@ declare module 'fairygui-cc/PackageItem' {
         extensionType?: any;
         skeletonAnchor?: Vec2;
         atlasAsset?: dragonBones.DragonBonesAtlasAsset;
+        get ref(): number;
         constructor();
         load(): Asset;
+        loadAsync(): Promise<Asset>;
         getBranch(): PackageItem;
         getHighResolution(): PackageItem;
         toString(): string;
+        addRef(): void;
+        doRelease(): void;
+        decRef(): void;
+        dispose(force?: boolean): void;
     }
 }
 
@@ -1769,6 +1796,8 @@ declare module 'fairygui-cc/UIConfig' {
         static frameTimeForAsyncUIConstruction: number;
         static linkUnderline: boolean;
         static defaultUILayer: number;
+        static defaultDelayLoad: boolean;
+        static autoReleaseAssets: boolean;
     }
     export function registerFont(name: string, font: Font | string, bundle?: AssetManager.Bundle): void;
     export function getFontByName(name: string): Font;
@@ -1996,16 +2025,19 @@ declare module 'fairygui-cc/display/Image' {
         set fillClockwise(value: boolean);
         get fillAmount(): number;
         set fillAmount(value: number);
+        __update(): void;
     }
 }
 
 declare module 'fairygui-cc/display/MovieClip' {
     import { Rect, SpriteFrame } from "cc";
     import { Image } from "fairygui-cc/display/Image";
+    import { PackageItem } from "fairygui-cc/PackageItem";
     export interface Frame {
         rect: Rect;
         addDelay: number;
         texture: SpriteFrame | null;
+        altasPackageItem: PackageItem;
     }
     export class MovieClip extends Image {
         interval: number;

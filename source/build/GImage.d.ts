@@ -5,6 +5,7 @@ import { GObject } from "./GObject";
 import { ByteBuffer } from "./utils/ByteBuffer";
 export declare class GImage extends GObject {
     _content: Image;
+    private _contentPackageItem?;
     constructor();
     get color(): Color;
     set color(value: Color);
@@ -19,6 +20,7 @@ export declare class GImage extends GObject {
     get fillAmount(): number;
     set fillAmount(value: number);
     constructFromResource(): void;
+    dispose(): void;
     protected handleGrayedChanged(): void;
     getProp(index: number): any;
     setProp(index: number, value: any): void;

@@ -1,4 +1,4 @@
-import { director, Color, view, Vec2, AudioClip, View, AudioSourceComponent, Event, Node } from "cc";
+import { director, Color, view, Vec2, AudioClip, View, AudioSourceComponent, Event, Node, game } from "cc";
 import { EDITOR } from "cc/env";
 import { InputProcessor } from "./event/InputProcessor";
 import { RelationType, PopupDirection } from "./FieldTypes";
@@ -10,6 +10,7 @@ import { UIContentScaler, updateScaler } from "./UIContentScaler";
 import { UIPackage } from "./UIPackage";
 import { Window } from "./Window";
 import { Event as FUIEvent } from "./event/Event";
+import { RefMannager } from "./RefManager";
 
 export class GRoot extends GComponent {
     private _modalLayer: GGraph;
@@ -137,8 +138,12 @@ export class GRoot extends GComponent {
             this.setChildIndex(win, i);
     }
 
-    public showModalWait(msg?: string): void {
+    public showModalWait(msg?: string): void {        
         if (UIConfig.globalModalWaiting != null) {
+            if(this._modalWaitPane?.isDisposed) {
+                this._modalWaitPane = null;
+            }
+
             if (this._modalWaitPane == null)
                 this._modalWaitPane = UIPackage.createObjectFromURL(UIConfig.globalModalWaiting);
             this._modalWaitPane.setSize(this.width, this.height);
@@ -225,6 +230,18 @@ export class GRoot extends GComponent {
         }
 
         return pos;
+    }
+
+    public removeChildAt(index: number, dispose?: boolean): GObject {
+        let ret = super.removeChildAt(index, dispose);
+        
+        if(dispose) {
+            if(ret == this._modalWaitPane) {
+                this._modalWaitPane = null;
+            }
+        }
+
+        return ret;
     }
 
     public showPopup(popup: GObject, target?: GObject | null, dir?: PopupDirection | boolean): void {
@@ -426,6 +443,14 @@ export class GRoot extends GComponent {
 
     public handlePositionChanged() {
         //nothing here
+    }
+
+    protected onUpdate(): void {
+        super.onUpdate();
+
+        if(!this.touchTarget) {
+            RefMannager.update(game.frameTime);
+        }
     }
 }
 

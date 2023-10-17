@@ -4,6 +4,7 @@ import { GObject } from "./GObject";
 import { ByteBuffer } from "./utils/ByteBuffer";
 export declare class GMovieClip extends GObject {
     _content: MovieClip;
+    private _contentPackageItem?;
     constructor();
     get color(): Color;
     set color(value: Color);
@@ -22,5 +23,6 @@ export declare class GMovieClip extends GObject {
     getProp(index: number): any;
     setProp(index: number, value: any): void;
     constructFromResource(): void;
+    dispose(): void;
     setup_beforeAdd(buffer: ByteBuffer, beginPos: number): void;
 }

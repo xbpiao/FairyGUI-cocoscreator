@@ -7,6 +7,7 @@ import { TranslationHelper } from "./TranslationHelper";
 import { ByteBuffer } from "./utils/ByteBuffer";
 import { PixelHitTestData } from "./event/HitTest";
 import { Frame } from "./display/MovieClip";
+import { UIConfig } from "./UIConfig";
 
 type PackageDependency = { id: string, name: string };
 
@@ -106,6 +107,15 @@ export class UIPackage {
      */
     public static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
     /**
+     * 载入一个包。包的资源从Asset Bundle加载.
+     * @param bundle Asset Bundle 对象.
+     * @param path 资源相对 Asset Bundle 目录的路径.
+     * @param onProgress 加载进度回调.
+     * @param onComplete 载入成功后的回调.
+     * @param delayLoad 延迟加载资源.
+     */
+    public static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void, delayLoad?:boolean): void;
+    /**
      * 载入一个包。包的资源从resources加载.
      * @param path 资源相对 resources 的路径.
      * @param onComplete 载入成功后的回调.
@@ -122,6 +132,7 @@ export class UIPackage {
         let path: string;
         let onProgress: (finish: number, total: number, item: AssetManager.RequestItem) => void;
         let onComplete: (error: Error, pkg: UIPackage) => void;
+        let delayLoad: boolean = false;
         let bundle: AssetManager.Bundle;
         if (args[0] instanceof AssetManager.Bundle) {
             bundle = args[0];
@@ -129,6 +140,7 @@ export class UIPackage {
             if (args.length > 3) {
                 onProgress = args[2];
                 onComplete = args[3];
+                delayLoad = args[4];
             }
             else
                 onComplete = args[2];
@@ -143,6 +155,15 @@ export class UIPackage {
                 onComplete = args[1];
         }
 
+        
+        let p = _instById[path];
+        if(p) {
+            onComplete?.call(this, null, p);
+            return;
+        }
+
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
+
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err: Error | null, asset: Asset) => {
             if (err) {
@@ -156,13 +177,13 @@ export class UIPackage {
             let buffer: ArrayBuffer = (<any>asset).buffer ? (<any>asset).buffer() : (<any>asset)._nativeAsset;
             pkg.loadPackage(new ByteBuffer(buffer), path);
             assetManager.releaseAsset(asset);
-
+            
             let cnt: number = pkg._items.length;
             let urls: Array<string> = [];
             let types: Array<any> = [];
             for (var i: number = 0; i < cnt; i++) {
                 var pi: PackageItem = pkg._items[i];
-                if (pi.type == PackageItemType.Atlas || pi.type == PackageItemType.Sound) {
+                if (pi.type == PackageItemType.Atlas && !delayLoad || pi.type == PackageItemType.Sound) {
                     let assetType = ItemTypeToAssetType[pi.type];
                     urls.push(pi.file);
                     types.push(assetType);
@@ -197,13 +218,13 @@ export class UIPackage {
         });
     }
 
-    public static removePackage(packageIdOrName: string): void {
+    public static removePackage(packageIdOrName: string, disposeAll: boolean = false): void {
         var pkg: UIPackage = _instById[packageIdOrName];
         if (!pkg)
             pkg = _instByName[packageIdOrName];
         if (!pkg)
             throw "No package found: " + packageIdOrName;
-        pkg.dispose();
+        pkg.dispose(disposeAll);
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
         if (pkg._path)
@@ -503,12 +524,11 @@ export class UIPackage {
         }
     }
 
-    public dispose(): void {
+    public dispose(force: boolean = false): void {
         var cnt: number = this._items.length;
         for (var i: number = 0; i < cnt; i++) {
             var pi: PackageItem = this._items[i];
-            if (pi.asset)
-                assetManager.releaseAsset(pi.asset);
+            pi.dispose(force);
         }
     }
 
@@ -572,6 +592,8 @@ export class UIPackage {
                     item.decoded = true;
                     var sprite: AtlasSprite = this._sprites[item.id];
                     if (sprite) {
+                        item.parent = sprite.atlas;
+
                         let atlasTexture: Texture2D = <Texture2D>this.getItemAsset(sprite.atlas);
                         if (atlasTexture) {
                             let sf = new SpriteFrame();
@@ -589,6 +611,10 @@ export class UIPackage {
                             }
                             item.asset = sf;
                         }
+                    }
+
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
                     }
                 }
                 break;
@@ -613,6 +639,9 @@ export class UIPackage {
                     else {
                         item.asset = (<AudioClip>item.asset);
                     }
+                    if(!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                        item.addRef();
+                    }
                 }
                 break;
 
@@ -620,6 +649,7 @@ export class UIPackage {
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadFont(item);
+                    item.addRef();
                 }
                 break;
 
@@ -627,6 +657,9 @@ export class UIPackage {
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadMovieClip(item);
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
                 }
                 break;
 
@@ -634,6 +667,126 @@ export class UIPackage {
                 break;
         }
 
+        return item.asset;
+    }
+
+    private async loadAssetAsync(bundle: AssetManager.Bundle, path: string, type: any) {
+        return new Promise((resolve, reject) => {
+            bundle.load(path, type, null, (err: Error | null, asset: Asset) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                
+                resolve(asset);
+            });
+        });
+    }
+
+    public async getItemAssetAsync2(item: PackageItem) {
+        if(item.__loaded) {
+            return item.asset;
+        }
+
+        switch (item.type) {
+            case PackageItemType.Image:
+                if (!item.decoded) {
+                    item.decoded = true;
+                    var sprite: AtlasSprite = this._sprites[item.id];
+                    if (sprite) {
+                        item.parent = sprite.atlas;
+                        
+                        let atlasTexture: Texture2D = <Texture2D>await this.getItemAssetAsync2(sprite.atlas);
+                        if (atlasTexture) {
+                            let sf = new SpriteFrame();
+                            sf.texture = atlasTexture;
+                            sf.rect = sprite.rect;
+                            sf.rotated = sprite.rotated;
+                            sf.offset = new Vec2(sprite.offset.x - (sprite.originalSize.width - sprite.rect.width) / 2, -(sprite.offset.y - (sprite.originalSize.height - sprite.rect.height) / 2));
+                            sf.originalSize = sprite.originalSize;
+
+                            if (item.scale9Grid) {
+                                sf.insetLeft = item.scale9Grid.x;
+                                sf.insetTop = item.scale9Grid.y;
+                                sf.insetRight = item.width - item.scale9Grid.xMax;
+                                sf.insetBottom = item.height - item.scale9Grid.yMax;
+                            }
+                            item.asset = sf;
+                        }
+                    }
+                    item.__loaded = true;
+
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
+                }
+                break;
+
+            case PackageItemType.Atlas:
+            case PackageItemType.Sound:
+                if (!item.decoded) {    
+                    item.decoded = true;  
+                    item.asset = <Asset>await this.loadAssetAsync(this._bundle, item.file, ItemTypeToAssetType[item.type]);
+                    if (!item.asset)
+                        console.log("Resource '" + item.file + "' not found");
+                    else if (item.type == PackageItemType.Atlas) {
+                        const asset: any = item.asset;
+                        let tex: Texture2D = asset['_texture'];
+                        if (!tex) {
+                            tex = new Texture2D();
+                            tex.name = asset.nativeUrl;
+                            tex.image = asset;
+                        }
+                        item.asset = tex;
+                    }
+                    else {
+                        item.asset = (<AudioClip>item.asset);
+                    }        
+                    
+                    if(!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                        item.addRef();
+                    }
+                    item.__loaded = true;
+                }
+                break;
+
+            case PackageItemType.Font:
+                if (!item.decoded) {
+                    item.decoded = true;
+                    await this.loadFontAsync(item);  
+                    item.addRef();       
+                    item.__loaded = true;
+                }
+                break;
+
+            case PackageItemType.MovieClip:
+                if (!item.decoded) {
+                    item.decoded = true;
+                    await this.loadMovieClipAsync(item);
+                    item.__loaded = true;
+                    if(!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        let check = (done: Function)=>{
+            if(!item.__loaded) {
+                setTimeout(()=>{
+                    check(done);
+                }, 10, this);
+            }else{
+                done(true);
+            }                
+        };
+
+        await new Promise((resolve, reject)=>{
+            check(resolve);
+        });
         return item.asset;
     }
 
@@ -674,7 +827,60 @@ export class UIPackage {
         }
     }
 
-    private loadMovieClip(item: PackageItem): void {
+    private async loadMovieClipAsync(item: PackageItem) {
+        var buffer: ByteBuffer = item.rawData;
+
+        buffer.seek(0, 0);
+
+        item.interval = buffer.readInt() / 1000;
+        item.swing = buffer.readBool();
+        item.repeatDelay = buffer.readInt() / 1000;
+
+        buffer.seek(0, 1);
+
+        var frameCount: number = buffer.readShort();
+        item.frames = [];
+
+        var spriteId: string;
+        var sprite: AtlasSprite;
+
+        for (var i: number = 0; i < frameCount; i++) {
+            var nextPos: number = buffer.readShort();
+            nextPos += buffer.position;
+
+            let rect: Rect = new Rect();
+            rect.x = buffer.readInt();
+            rect.y = buffer.readInt();
+            rect.width = buffer.readInt();
+            rect.height = buffer.readInt();
+            let addDelay = buffer.readInt() / 1000;
+            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
+            spriteId = buffer.readS();
+
+            if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
+                let atlasTexture: Texture2D = null;
+                atlasTexture = <Texture2D> await this.getItemAssetAsync2(sprite.atlas);
+                frame.altasPackageItem = sprite.atlas;
+                
+                if (atlasTexture) {
+                    let sx: number = item.width / frame.rect.width;
+                    let sf = new SpriteFrame();
+
+                    sf.texture = atlasTexture;
+                    sf.rect = sprite.rect;
+                    sf.rotated = sprite.rotated;
+                    sf.offset = new Vec2(frame.rect.x - (item.width - frame.rect.width) / 2, -(frame.rect.y - (item.height - frame.rect.height) / 2))
+                    sf.originalSize = new Size(item.width, item.height);
+                    frame.texture = sf;
+                }
+            }
+            item.frames.push(frame);
+
+            buffer.position = nextPos;
+        }
+    }
+
+    private loadMovieClip(item: PackageItem) {
         var buffer: ByteBuffer = item.rawData;
 
         buffer.seek(0, 0);
@@ -701,11 +907,13 @@ export class UIPackage {
             rect.width = buffer.readInt();
             rect.height = buffer.readInt();
             let addDelay = buffer.readInt() / 1000;
-            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null };
+            let frame: Frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
             spriteId = buffer.readS();
 
             if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
-                let atlasTexture: Texture2D = <Texture2D>this.getItemAsset(sprite.atlas);
+                let atlasTexture: Texture2D = <Texture2D> this.getItemAsset(sprite.atlas);
+                frame.altasPackageItem = sprite.atlas;
+                
                 if (atlasTexture) {
                     let sx: number = item.width / frame.rect.width;
                     let sf = new SpriteFrame();
@@ -724,7 +932,7 @@ export class UIPackage {
         }
     }
 
-    private loadFont(item: PackageItem): void {
+    private loadFont(item: PackageItem) {
         var font: BitmapFont = new BitmapFont();
         item.asset = font;
 
@@ -791,15 +999,15 @@ export class UIPackage {
             else {
                 let sprite: AtlasSprite = this._sprites[img];
                 if (sprite) {
+                    if(!mainSprite) {
+                        mainSprite = sprite;
+                    }
+
                     rect.set(sprite.rect);
                     bg.xOffset += sprite.offset.x;
                     bg.yOffset += sprite.offset.y;
                     if (fontSize == 0)
                         fontSize = sprite.originalSize.height;
-                    if (!mainTexture) {
-                        sprite.atlas.load();
-                        mainTexture = <Texture2D>sprite.atlas.asset;
-                    }
                 }
 
                 if (bg.xAdvance == 0) {
@@ -820,6 +1028,118 @@ export class UIPackage {
         font.fntConfig.resizable = resizable;
         font.fntConfig.canTint = canTint;
 
+        if (!mainTexture && mainSprite) {
+            mainSprite.atlas.load();
+            mainTexture = <Texture2D>mainSprite.atlas.asset;
+        }
+        
+        let spriteFrame = new SpriteFrame();
+        spriteFrame.texture = mainTexture;
+        font.spriteFrame = spriteFrame;
+        font.onLoaded();
+    }
+
+    private async loadFontAsync(item: PackageItem) {
+        var font: BitmapFont = new BitmapFont();
+        item.asset = font;
+
+        font.fntConfig = {
+            commonHeight: 0,
+            fontSize: 0,
+            kerningDict: {},
+            fontDefDictionary: {}
+        };
+        let dict = font.fntConfig.fontDefDictionary;
+
+        var buffer: ByteBuffer = item.rawData;
+
+        buffer.seek(0, 0);
+
+        let ttf = buffer.readBool();
+        let canTint = buffer.readBool();
+        let resizable = buffer.readBool();
+        buffer.readBool(); //has channel
+        let fontSize = buffer.readInt();
+        var xadvance: number = buffer.readInt();
+        var lineHeight: number = buffer.readInt();
+
+        let mainTexture: Texture2D;
+        var mainSprite: AtlasSprite = this._sprites[item.id];
+        if (mainSprite)
+            mainTexture = <Texture2D>(this.getItemAsset(mainSprite.atlas));
+
+        buffer.seek(0, 1);
+
+        var bg: any;
+        var cnt: number = buffer.readInt();
+        for (var i: number = 0; i < cnt; i++) {
+            var nextPos: number = buffer.readShort();
+            nextPos += buffer.position;
+
+            bg = {};
+            var ch: number = buffer.readUshort();
+            dict[ch] = bg;
+
+            let rect: Rect = new Rect();
+            bg.rect = rect;
+
+            var img: string = buffer.readS();
+            rect.x = buffer.readInt();
+            rect.y = buffer.readInt();
+            bg.xOffset = buffer.readInt();
+            bg.yOffset = buffer.readInt();
+            rect.width = buffer.readInt();
+            rect.height = buffer.readInt();
+            bg.xAdvance = buffer.readInt();
+            bg.channel = buffer.readByte();
+            if (bg.channel == 1)
+                bg.channel = 3;
+            else if (bg.channel == 2)
+                bg.channel = 2;
+            else if (bg.channel == 3)
+                bg.channel = 1;
+
+            if (ttf) {
+                rect.x += mainSprite.rect.x;
+                rect.y += mainSprite.rect.y;
+            }
+            else {
+                let sprite: AtlasSprite = this._sprites[img];
+                if (sprite) {
+                    if(!mainSprite) {
+                        mainSprite = sprite;
+                    }
+
+                    rect.set(sprite.rect);
+                    bg.xOffset += sprite.offset.x;
+                    bg.yOffset += sprite.offset.y;
+                    if (fontSize == 0)
+                        fontSize = sprite.originalSize.height;
+                }
+
+                if (bg.xAdvance == 0) {
+                    if (xadvance == 0)
+                        bg.xAdvance = bg.xOffset + bg.rect.width;
+                    else
+                        bg.xAdvance = xadvance;
+                }
+            }
+
+            buffer.position = nextPos;
+        }
+
+
+        font.fontSize = fontSize;
+        font.fntConfig.fontSize = fontSize;
+        font.fntConfig.commonHeight = lineHeight == 0 ? fontSize : lineHeight;
+        font.fntConfig.resizable = resizable;
+        font.fntConfig.canTint = canTint;
+
+        if (!mainTexture && mainSprite) {
+            await mainSprite.atlas.loadAsync();
+            mainTexture = <Texture2D>mainSprite.atlas.asset;
+        }
+        
         let spriteFrame = new SpriteFrame();
         spriteFrame.texture = mainTexture;
         font.spriteFrame = spriteFrame;

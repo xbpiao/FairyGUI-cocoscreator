@@ -1,4 +1,4 @@
-import { gfx, UIRenderer, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, Size, screen, view, ImageAsset, AudioClip, BufferAsset, assetManager, AssetManager, Asset, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, isValid, View, AudioSourceComponent, EditBox, Overflow } from 'cc';
+import { gfx, UIRenderer, Event as Event$1, Vec2, Node, game, director, macro, Color, Layers, Font, resources, Vec3, Rect, UITransform, UIOpacity, Component, Graphics, misc, Sprite, isValid, Size, screen, view, assetManager, ImageAsset, AudioClip, BufferAsset, AssetManager, Asset, Texture2D, SpriteFrame, BitmapFont, sp, dragonBones, path, Label, LabelOutline, LabelShadow, SpriteAtlas, RichText, sys, EventMouse, EventTarget, Mask, math, View, AudioSourceComponent, EditBox, Overflow } from 'cc';
 import { EDITOR } from 'cc/env';
 
 var ButtonMode;
@@ -2481,6 +2481,9 @@ UIConfig.frameTimeForAsyncUIConstruction = 0.002;
 UIConfig.linkUnderline = true;
 //Default group name of UI node.<br/>
 UIConfig.defaultUILayer = Layers.Enum.UI_2D;
+UIConfig.defaultDelayLoad = true;
+// 
+UIConfig.autoReleaseAssets = false;
 let _fontRegistry = {};
 function registerFont(name, font, bundle) {
     if (font instanceof Font)
@@ -4040,18 +4043,24 @@ class Image extends Sprite {
         if (this._fillMethod != value) {
             this._fillMethod = value;
             if (this._fillMethod != 0) {
-                this.type = Sprite.Type.FILLED;
-                if (this._fillMethod <= 3)
-                    this.fillType = this._fillMethod - 1;
-                else
-                    this.fillType = Sprite.FillType.RADIAL;
-                this.fillCenter = new Vec2(0.5, 0.5);
+                this.updateFillType();
                 this.setupFill();
             }
             else {
                 this.type = Sprite.Type.SIMPLE;
             }
         }
+    }
+    updateFillType() {
+        if (!this.spriteFrame) {
+            return;
+        }
+        this.type = Sprite.Type.FILLED;
+        if (this._fillMethod <= 3)
+            this.fillType = this._fillMethod - 1;
+        else
+            this.fillType = Sprite.FillType.RADIAL;
+        this.fillCenter = new Vec2(0.5, 0.5);
     }
     get fillOrigin() {
         return this._fillOrigin;
@@ -4080,14 +4089,30 @@ class Image extends Sprite {
         if (this._fillAmount != value) {
             this._fillAmount = value;
             if (this._fillMethod != 0) {
-                if (this._fillClockwise)
-                    this.fillRange = -this._fillAmount;
-                else
-                    this.fillRange = this._fillAmount;
+                this.updateFillRange();
             }
         }
     }
+    updateFillRange() {
+        if (!this.spriteFrame) {
+            return;
+        }
+        if (this._fillClockwise)
+            this.fillRange = -this._fillAmount;
+        else
+            this.fillRange = this._fillAmount;
+    }
+    __update() {
+        if (this._fillMethod != 0) {
+            this.updateFillType();
+            this.setupFill();
+            this.updateFillRange();
+        }
+    }
     setupFill() {
+        if (!this.spriteFrame) {
+            return;
+        }
         if (this._fillMethod == FillMethod.Horizontal) {
             this._fillClockwise = this._fillOrigin == FillOrigin.Right || this._fillOrigin == FillOrigin.Bottom;
             this.fillStart = this._fillClockwise ? 1 : 0;
@@ -4169,12 +4194,26 @@ class GImage extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.load();
         if (contentItem.scale9Grid)
             this._content.type = Sprite.Type.SLICED;
         else if (contentItem.scaleByTile)
             this._content.type = Sprite.Type.TILED;
-        this._content.spriteFrame = contentItem.asset;
+        contentItem.loadAsync().then(() => {
+            if (!isValid(this.node)) {
+                return;
+            }
+            this._content.spriteFrame = contentItem.asset;
+            this._content.__update();
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
+        });
+    }
+    dispose() {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+        super.dispose();
     }
     handleGrayedChanged() {
         this._content.grayscale = this._grayed;
@@ -4546,12 +4585,25 @@ class GMovieClip extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.load();
-        this._content.interval = contentItem.interval;
-        this._content.swing = contentItem.swing;
-        this._content.repeatDelay = contentItem.repeatDelay;
-        this._content.frames = contentItem.frames;
-        this._content.smoothing = contentItem.smoothing;
+        contentItem.loadAsync().then(() => {
+            if (!isValid(this.node)) {
+                return;
+            }
+            this._content.interval = contentItem.interval;
+            this._content.swing = contentItem.swing;
+            this._content.repeatDelay = contentItem.repeatDelay;
+            this._content.frames = contentItem.frames;
+            this._content.smoothing = contentItem.smoothing;
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
+        });
+    }
+    dispose() {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+        super.dispose();
     }
     setup_beforeAdd(buffer, beginPos) {
         super.setup_beforeAdd(buffer, beginPos);
@@ -4586,13 +4638,42 @@ function updateScaler() {
         UIContentScaler.scaleLevel = 0;
 }
 
+class RefMannager {
+    static deleteItem(item) {
+        this._deletes.push(item);
+    }
+    static update(dt) {
+        this._timer += dt;
+        if (this._timer >= 10) {
+            this._timer = 0;
+            for (let i = this._deletes.length - 1; i >= 0; i--) {
+                let item = this._deletes[i];
+                if (item.ref <= 0) {
+                    this._deletes.splice(i, 1);
+                    item.doRelease();
+                }
+            }
+        }
+    }
+}
+RefMannager._timer = 0;
+RefMannager._deletes = [];
+
 class PackageItem {
+    get ref() {
+        return this._ref;
+    }
     constructor() {
         this.width = 0;
         this.height = 0;
+        this.__loaded = false;
+        this._ref = 0;
     }
     load() {
         return this.owner.getItemAsset(this);
+    }
+    loadAsync() {
+        return this.owner.getItemAssetAsync2(this);
     }
     getBranch() {
         if (this.branches && this.owner._branchIndex != -1) {
@@ -4612,6 +4693,86 @@ class PackageItem {
     }
     toString() {
         return this.name;
+    }
+    addRef() {
+        var _a, _b;
+        this._ref++;
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.addRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.addRef();
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i = 0; i < this.frames.length; i++) {
+                        var frame = this.frames[i];
+                        if (frame.texture) {
+                            frame.texture.addRef();
+                        }
+                        if (frame.altasPackageItem) {
+                            frame.altasPackageItem.addRef();
+                        }
+                    }
+                }
+                break;
+        }
+    }
+    doRelease() {
+        switch (this.type) {
+            case PackageItemType.MovieClip:
+                if (this.frames) {
+                    for (var i = 0; i < this.frames.length; i++) {
+                        var frame = this.frames[i];
+                        if (frame.texture) {
+                            frame.texture.decRef(true);
+                            if (UIConfig.autoReleaseAssets) {
+                                if (frame.texture.refCount == 0) {
+                                    assetManager.releaseAsset(frame.texture);
+                                }
+                            }
+                        }
+                        if (frame.altasPackageItem) {
+                            frame.altasPackageItem.decRef();
+                        }
+                    }
+                }
+                break;
+        }
+        if (UIConfig.autoReleaseAssets) {
+            if (this.asset && this.asset.refCount == 0) {
+                assetManager.releaseAsset(this.asset);
+            }
+            if (this._ref == 0) {
+                this.__loaded = false;
+                this.decoded = false;
+                this.frames = null;
+                this.asset = null;
+                this.parent = null;
+            }
+        }
+    }
+    decRef() {
+        var _a, _b;
+        if (this._ref > 0) {
+            this._ref--;
+        }
+        else {
+            return;
+        }
+        (_a = this.parent) === null || _a === void 0 ? void 0 : _a.decRef();
+        (_b = this.asset) === null || _b === void 0 ? void 0 : _b.decRef(false);
+        if (this._ref <= 0) {
+            RefMannager.deleteItem(this);
+        }
+    }
+    dispose(force = false) {
+        if (this.asset) {
+            if (force) {
+                assetManager.releaseAsset(this.asset);
+            }
+            else {
+                this.asset.decRef(true);
+            }
+            this.asset = null;
+        }
     }
 }
 
@@ -5020,6 +5181,15 @@ class ChildHitArea {
     }
 }
 
+var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var PathUtils = path;
 class UIPackage {
     constructor() {
@@ -5081,6 +5251,7 @@ class UIPackage {
         let path;
         let onProgress;
         let onComplete;
+        let delayLoad = false;
         let bundle;
         if (args[0] instanceof AssetManager.Bundle) {
             bundle = args[0];
@@ -5088,6 +5259,7 @@ class UIPackage {
             if (args.length > 3) {
                 onProgress = args[2];
                 onComplete = args[3];
+                delayLoad = args[4];
             }
             else
                 onComplete = args[2];
@@ -5101,6 +5273,12 @@ class UIPackage {
             else
                 onComplete = args[1];
         }
+        let p = _instById[path];
+        if (p) {
+            onComplete === null || onComplete === void 0 ? void 0 : onComplete.call(this, null, p);
+            return;
+        }
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err, asset) => {
             if (err) {
@@ -5117,7 +5295,7 @@ class UIPackage {
             let urls = [];
             for (var i = 0; i < cnt; i++) {
                 var pi = pkg._items[i];
-                if (pi.type == PackageItemType.Atlas || pi.type == PackageItemType.Sound) {
+                if (pi.type == PackageItemType.Atlas && !delayLoad || pi.type == PackageItemType.Sound) {
                     ItemTypeToAssetType[pi.type];
                     urls.push(pi.file);
                 }
@@ -5146,13 +5324,13 @@ class UIPackage {
                 taskComplete(null);
         });
     }
-    static removePackage(packageIdOrName) {
+    static removePackage(packageIdOrName, disposeAll = false) {
         var pkg = _instById[packageIdOrName];
         if (!pkg)
             pkg = _instByName[packageIdOrName];
         if (!pkg)
             throw "No package found: " + packageIdOrName;
-        pkg.dispose();
+        pkg.dispose(disposeAll);
         delete _instById[pkg.id];
         delete _instByName[pkg.name];
         if (pkg._path)
@@ -5402,12 +5580,11 @@ class UIPackage {
             }
         }
     }
-    dispose() {
+    dispose(force = false) {
         var cnt = this._items.length;
         for (var i = 0; i < cnt; i++) {
             var pi = this._items[i];
-            if (pi.asset)
-                assetManager.releaseAsset(pi.asset);
+            pi.dispose(force);
         }
     }
     get id() {
@@ -5458,6 +5635,7 @@ class UIPackage {
                     item.decoded = true;
                     var sprite = this._sprites[item.id];
                     if (sprite) {
+                        item.parent = sprite.atlas;
                         let atlasTexture = this.getItemAsset(sprite.atlas);
                         if (atlasTexture) {
                             let sf = new SpriteFrame();
@@ -5474,6 +5652,9 @@ class UIPackage {
                             }
                             item.asset = sf;
                         }
+                    }
+                    if (!UIConfig.autoReleaseAssets) {
+                        item.addRef();
                     }
                 }
                 break;
@@ -5497,22 +5678,138 @@ class UIPackage {
                     else {
                         item.asset = item.asset;
                     }
+                    if (!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                        item.addRef();
+                    }
                 }
                 break;
             case PackageItemType.Font:
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadFont(item);
+                    item.addRef();
                 }
                 break;
             case PackageItemType.MovieClip:
                 if (!item.decoded) {
                     item.decoded = true;
                     this.loadMovieClip(item);
+                    if (!UIConfig.autoReleaseAssets) {
+                        item.addRef();
+                    }
                 }
                 break;
         }
         return item.asset;
+    }
+    loadAssetAsync(bundle, path, type) {
+        return __awaiter$1(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                bundle.load(path, type, null, (err, asset) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(asset);
+                });
+            });
+        });
+    }
+    getItemAssetAsync2(item) {
+        return __awaiter$1(this, void 0, void 0, function* () {
+            if (item.__loaded) {
+                return item.asset;
+            }
+            switch (item.type) {
+                case PackageItemType.Image:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        var sprite = this._sprites[item.id];
+                        if (sprite) {
+                            item.parent = sprite.atlas;
+                            let atlasTexture = yield this.getItemAssetAsync2(sprite.atlas);
+                            if (atlasTexture) {
+                                let sf = new SpriteFrame();
+                                sf.texture = atlasTexture;
+                                sf.rect = sprite.rect;
+                                sf.rotated = sprite.rotated;
+                                sf.offset = new Vec2(sprite.offset.x - (sprite.originalSize.width - sprite.rect.width) / 2, -(sprite.offset.y - (sprite.originalSize.height - sprite.rect.height) / 2));
+                                sf.originalSize = sprite.originalSize;
+                                if (item.scale9Grid) {
+                                    sf.insetLeft = item.scale9Grid.x;
+                                    sf.insetTop = item.scale9Grid.y;
+                                    sf.insetRight = item.width - item.scale9Grid.xMax;
+                                    sf.insetBottom = item.height - item.scale9Grid.yMax;
+                                }
+                                item.asset = sf;
+                            }
+                        }
+                        item.__loaded = true;
+                        if (!UIConfig.autoReleaseAssets) {
+                            item.addRef();
+                        }
+                    }
+                    break;
+                case PackageItemType.Atlas:
+                case PackageItemType.Sound:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        item.asset = (yield this.loadAssetAsync(this._bundle, item.file, ItemTypeToAssetType[item.type]));
+                        if (!item.asset)
+                            console.log("Resource '" + item.file + "' not found");
+                        else if (item.type == PackageItemType.Atlas) {
+                            const asset = item.asset;
+                            let tex = asset['_texture'];
+                            if (!tex) {
+                                tex = new Texture2D();
+                                tex.name = asset.nativeUrl;
+                                tex.image = asset;
+                            }
+                            item.asset = tex;
+                        }
+                        else {
+                            item.asset = item.asset;
+                        }
+                        if (!UIConfig.autoReleaseAssets || item.type == PackageItemType.Sound) {
+                            item.addRef();
+                        }
+                        item.__loaded = true;
+                    }
+                    break;
+                case PackageItemType.Font:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        yield this.loadFontAsync(item);
+                        item.addRef();
+                        item.__loaded = true;
+                    }
+                    break;
+                case PackageItemType.MovieClip:
+                    if (!item.decoded) {
+                        item.decoded = true;
+                        yield this.loadMovieClipAsync(item);
+                        item.__loaded = true;
+                        if (!UIConfig.autoReleaseAssets) {
+                            item.addRef();
+                        }
+                    }
+                    break;
+            }
+            let check = (done) => {
+                if (!item.__loaded) {
+                    setTimeout(() => {
+                        check(done);
+                    }, 10, this);
+                }
+                else {
+                    done(true);
+                }
+            };
+            yield new Promise((resolve, reject) => {
+                check(resolve);
+            });
+            return item.asset;
+        });
     }
     getItemAssetAsync(item, onComplete) {
         if (item.decoded) {
@@ -5545,6 +5842,49 @@ class UIPackage {
             this.getItemAsset(pi);
         }
     }
+    loadMovieClipAsync(item) {
+        return __awaiter$1(this, void 0, void 0, function* () {
+            var buffer = item.rawData;
+            buffer.seek(0, 0);
+            item.interval = buffer.readInt() / 1000;
+            item.swing = buffer.readBool();
+            item.repeatDelay = buffer.readInt() / 1000;
+            buffer.seek(0, 1);
+            var frameCount = buffer.readShort();
+            item.frames = [];
+            var spriteId;
+            var sprite;
+            for (var i = 0; i < frameCount; i++) {
+                var nextPos = buffer.readShort();
+                nextPos += buffer.position;
+                let rect = new Rect();
+                rect.x = buffer.readInt();
+                rect.y = buffer.readInt();
+                rect.width = buffer.readInt();
+                rect.height = buffer.readInt();
+                let addDelay = buffer.readInt() / 1000;
+                let frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
+                spriteId = buffer.readS();
+                if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
+                    let atlasTexture = null;
+                    atlasTexture = (yield this.getItemAssetAsync2(sprite.atlas));
+                    frame.altasPackageItem = sprite.atlas;
+                    if (atlasTexture) {
+                        item.width / frame.rect.width;
+                        let sf = new SpriteFrame();
+                        sf.texture = atlasTexture;
+                        sf.rect = sprite.rect;
+                        sf.rotated = sprite.rotated;
+                        sf.offset = new Vec2(frame.rect.x - (item.width - frame.rect.width) / 2, -(frame.rect.y - (item.height - frame.rect.height) / 2));
+                        sf.originalSize = new Size(item.width, item.height);
+                        frame.texture = sf;
+                    }
+                }
+                item.frames.push(frame);
+                buffer.position = nextPos;
+            }
+        });
+    }
     loadMovieClip(item) {
         var buffer = item.rawData;
         buffer.seek(0, 0);
@@ -5565,10 +5905,11 @@ class UIPackage {
             rect.width = buffer.readInt();
             rect.height = buffer.readInt();
             let addDelay = buffer.readInt() / 1000;
-            let frame = { rect: rect, addDelay: addDelay, texture: null };
+            let frame = { rect: rect, addDelay: addDelay, texture: null, altasPackageItem: null };
             spriteId = buffer.readS();
             if (spriteId != null && (sprite = this._sprites[spriteId]) != null) {
                 let atlasTexture = this.getItemAsset(sprite.atlas);
+                frame.altasPackageItem = sprite.atlas;
                 if (atlasTexture) {
                     item.width / frame.rect.width;
                     let sf = new SpriteFrame();
@@ -5640,15 +5981,14 @@ class UIPackage {
             else {
                 let sprite = this._sprites[img];
                 if (sprite) {
+                    if (!mainSprite) {
+                        mainSprite = sprite;
+                    }
                     rect.set(sprite.rect);
                     bg.xOffset += sprite.offset.x;
                     bg.yOffset += sprite.offset.y;
                     if (fontSize == 0)
                         fontSize = sprite.originalSize.height;
-                    if (!mainTexture) {
-                        sprite.atlas.load();
-                        mainTexture = sprite.atlas.asset;
-                    }
                 }
                 if (bg.xAdvance == 0) {
                     if (xadvance == 0)
@@ -5664,10 +6004,104 @@ class UIPackage {
         font.fntConfig.commonHeight = lineHeight == 0 ? fontSize : lineHeight;
         font.fntConfig.resizable = resizable;
         font.fntConfig.canTint = canTint;
+        if (!mainTexture && mainSprite) {
+            mainSprite.atlas.load();
+            mainTexture = mainSprite.atlas.asset;
+        }
         let spriteFrame = new SpriteFrame();
         spriteFrame.texture = mainTexture;
         font.spriteFrame = spriteFrame;
         font.onLoaded();
+    }
+    loadFontAsync(item) {
+        return __awaiter$1(this, void 0, void 0, function* () {
+            var font = new BitmapFont();
+            item.asset = font;
+            font.fntConfig = {
+                commonHeight: 0,
+                fontSize: 0,
+                kerningDict: {},
+                fontDefDictionary: {}
+            };
+            let dict = font.fntConfig.fontDefDictionary;
+            var buffer = item.rawData;
+            buffer.seek(0, 0);
+            let ttf = buffer.readBool();
+            let canTint = buffer.readBool();
+            let resizable = buffer.readBool();
+            buffer.readBool(); //has channel
+            let fontSize = buffer.readInt();
+            var xadvance = buffer.readInt();
+            var lineHeight = buffer.readInt();
+            let mainTexture;
+            var mainSprite = this._sprites[item.id];
+            if (mainSprite)
+                mainTexture = (this.getItemAsset(mainSprite.atlas));
+            buffer.seek(0, 1);
+            var bg;
+            var cnt = buffer.readInt();
+            for (var i = 0; i < cnt; i++) {
+                var nextPos = buffer.readShort();
+                nextPos += buffer.position;
+                bg = {};
+                var ch = buffer.readUshort();
+                dict[ch] = bg;
+                let rect = new Rect();
+                bg.rect = rect;
+                var img = buffer.readS();
+                rect.x = buffer.readInt();
+                rect.y = buffer.readInt();
+                bg.xOffset = buffer.readInt();
+                bg.yOffset = buffer.readInt();
+                rect.width = buffer.readInt();
+                rect.height = buffer.readInt();
+                bg.xAdvance = buffer.readInt();
+                bg.channel = buffer.readByte();
+                if (bg.channel == 1)
+                    bg.channel = 3;
+                else if (bg.channel == 2)
+                    bg.channel = 2;
+                else if (bg.channel == 3)
+                    bg.channel = 1;
+                if (ttf) {
+                    rect.x += mainSprite.rect.x;
+                    rect.y += mainSprite.rect.y;
+                }
+                else {
+                    let sprite = this._sprites[img];
+                    if (sprite) {
+                        if (!mainSprite) {
+                            mainSprite = sprite;
+                        }
+                        rect.set(sprite.rect);
+                        bg.xOffset += sprite.offset.x;
+                        bg.yOffset += sprite.offset.y;
+                        if (fontSize == 0)
+                            fontSize = sprite.originalSize.height;
+                    }
+                    if (bg.xAdvance == 0) {
+                        if (xadvance == 0)
+                            bg.xAdvance = bg.xOffset + bg.rect.width;
+                        else
+                            bg.xAdvance = xadvance;
+                    }
+                }
+                buffer.position = nextPos;
+            }
+            font.fontSize = fontSize;
+            font.fntConfig.fontSize = fontSize;
+            font.fntConfig.commonHeight = lineHeight == 0 ? fontSize : lineHeight;
+            font.fntConfig.resizable = resizable;
+            font.fntConfig.canTint = canTint;
+            if (!mainTexture && mainSprite) {
+                yield mainSprite.atlas.loadAsync();
+                mainTexture = mainSprite.atlas.asset;
+            }
+            let spriteFrame = new SpriteFrame();
+            spriteFrame.texture = mainTexture;
+            font.spriteFrame = spriteFrame;
+            font.onLoaded();
+        });
     }
     loadSpine(item) {
         this._bundle.load(item.file, sp.SkeletonData, (err, asset) => {
@@ -5910,12 +6344,20 @@ class GTextField extends GObject {
             if (newFont.startsWith("ui://")) {
                 var pi = UIPackage.getItemByURL(newFont);
                 if (pi)
-                    newFont = pi.owner.getItemAsset(pi);
+                    newFont = pi.owner.getItemAssetAsync2(pi);
                 else
                     newFont = UIConfig.defaultFont;
             }
-            this._realFont = newFont;
-            this.updateFont();
+            if (newFont instanceof Promise) {
+                newFont.then((asset) => {
+                    this._realFont = asset;
+                    this.updateFont();
+                });
+            }
+            else {
+                this._realFont = newFont;
+                this.updateFont();
+            }
         }
     }
     get fontSize() {
@@ -6333,6 +6775,15 @@ class GTextField extends GObject {
     }
 }
 
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 class RichTextImageAtlas extends SpriteAtlas {
     getSpriteFrame(key) {
         let pi = UIPackage.getItemByURL(key);
@@ -6344,6 +6795,22 @@ class RichTextImageAtlas extends SpriteAtlas {
                 return pi.frames[0].texture;
         }
         return super.getSpriteFrame(key);
+    }
+    getSpriteFrameAsync(key) {
+        const _super = Object.create(null, {
+            getSpriteFrame: { get: () => super.getSpriteFrame }
+        });
+        return __awaiter(this, void 0, void 0, function* () {
+            let pi = UIPackage.getItemByURL(key);
+            if (pi) {
+                yield pi.loadAsync();
+                if (pi.type == PackageItemType.Image)
+                    return pi.asset;
+                else if (pi.type == PackageItemType.MovieClip)
+                    return pi.frames[0].texture;
+            }
+            return _super.getSpriteFrame.call(this, key);
+        });
     }
 }
 const imageAtlas = new RichTextImageAtlas();
@@ -10439,6 +10906,10 @@ class GComponent extends GObject {
         return this._controllers;
     }
     onChildAdd(child, index) {
+        if (!child.node) {
+            console.error("child.node is null");
+            return;
+        }
         child.node.parent = this._container;
         child.node.active = child._finalVisible;
         if (this._buildingDisplayList)
@@ -11496,7 +11967,11 @@ class GRoot extends GComponent {
             this.setChildIndex(win, i);
     }
     showModalWait(msg) {
+        var _a;
         if (UIConfig.globalModalWaiting != null) {
+            if ((_a = this._modalWaitPane) === null || _a === void 0 ? void 0 : _a.isDisposed) {
+                this._modalWaitPane = null;
+            }
             if (this._modalWaitPane == null)
                 this._modalWaitPane = UIPackage.createObjectFromURL(UIConfig.globalModalWaiting);
             this._modalWaitPane.setSize(this.width, this.height);
@@ -11571,6 +12046,15 @@ class GRoot extends GComponent {
             }
         }
         return pos;
+    }
+    removeChildAt(index, dispose) {
+        let ret = super.removeChildAt(index, dispose);
+        if (dispose) {
+            if (ret == this._modalWaitPane) {
+                this._modalWaitPane = null;
+            }
+        }
+        return ret;
     }
     showPopup(popup, target, dir) {
         if (this._popupStack.length > 0) {
@@ -11739,6 +12223,12 @@ class GRoot extends GComponent {
     }
     handlePositionChanged() {
         //nothing here
+    }
+    onUpdate() {
+        super.onUpdate();
+        if (!this.touchTarget) {
+            RefMannager.update(game.frameTime);
+        }
     }
 }
 Decls$1.GRoot = GRoot;
@@ -11966,6 +12456,10 @@ class GObjectPool {
 class GLoader extends GObject {
     constructor() {
         super();
+        /**
+         * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+         */
+        this.extension = "";
         this._frame = 0;
         this._node.name = "GLoader";
         this._playing = true;
@@ -11989,9 +12483,12 @@ class GLoader extends GObject {
             if (this._content.spriteFrame)
                 this.freeExternal(this._content.spriteFrame);
         }
-        if (this._content2)
+        if (this._content2) {
             this._content2.dispose();
+            this._content2 = null;
+        }
         super.dispose();
+        this.clearContent();
     }
     get url() {
         return this._url;
@@ -12143,55 +12640,61 @@ class GLoader extends GObject {
             this.loadExternal();
     }
     loadFromPackage(itemURL) {
-        this._contentItem = UIPackage.getItemByURL(itemURL);
-        if (this._contentItem) {
+        let contentItem = UIPackage.getItemByURL(itemURL);
+        if (contentItem) {
+            this._contentItem = contentItem;
             this._contentItem = this._contentItem.getBranch();
             this.sourceWidth = this._contentItem.width;
             this.sourceHeight = this._contentItem.height;
             this._contentItem = this._contentItem.getHighResolution();
-            this._contentItem.load();
-            if (this._autoSize)
-                this.setSize(this.sourceWidth, this.sourceHeight);
-            if (this._contentItem.type == PackageItemType.Image) {
-                if (!this._contentItem.asset) {
-                    this.setErrorState();
+            this._contentItem.loadAsync().then(() => {
+                if (!isValid(this.node)) {
+                    return;
                 }
-                else {
-                    this._content.spriteFrame = this._contentItem.asset;
-                    if (this._content.fillMethod == 0) {
-                        if (this._contentItem.scale9Grid)
-                            this._content.type = Sprite.Type.SLICED;
-                        else if (this._contentItem.scaleByTile)
-                            this._content.type = Sprite.Type.TILED;
-                        else
-                            this._content.type = Sprite.Type.SIMPLE;
+                this._contentItem.addRef();
+                if (this._autoSize)
+                    this.setSize(this.sourceWidth, this.sourceHeight);
+                if (this._contentItem.type == PackageItemType.Image) {
+                    if (!this._contentItem.asset) {
+                        this.setErrorState();
                     }
+                    else {
+                        this._content.spriteFrame = this._contentItem.asset;
+                        if (this._content.fillMethod == 0) {
+                            if (this._contentItem.scale9Grid)
+                                this._content.type = Sprite.Type.SLICED;
+                            else if (this._contentItem.scaleByTile)
+                                this._content.type = Sprite.Type.TILED;
+                            else
+                                this._content.type = Sprite.Type.SIMPLE;
+                        }
+                        this.updateLayout();
+                    }
+                }
+                else if (this._contentItem.type == PackageItemType.MovieClip) {
+                    this._content.interval = this._contentItem.interval;
+                    this._content.swing = this._contentItem.swing;
+                    this._content.repeatDelay = this._contentItem.repeatDelay;
+                    this._content.frames = this._contentItem.frames;
                     this.updateLayout();
                 }
-            }
-            else if (this._contentItem.type == PackageItemType.MovieClip) {
-                this._content.interval = this._contentItem.interval;
-                this._content.swing = this._contentItem.swing;
-                this._content.repeatDelay = this._contentItem.repeatDelay;
-                this._content.frames = this._contentItem.frames;
-                this.updateLayout();
-            }
-            else if (this._contentItem.type == PackageItemType.Component) {
-                var obj = UIPackage.createObjectFromURL(itemURL);
-                if (!obj)
-                    this.setErrorState();
-                else if (!(obj instanceof GComponent)) {
-                    obj.dispose();
-                    this.setErrorState();
+                else if (this._contentItem.type == PackageItemType.Component) {
+                    var obj = UIPackage.createObjectFromURL(itemURL);
+                    if (!obj)
+                        this.setErrorState();
+                    else if (!(obj instanceof GComponent)) {
+                        obj.dispose();
+                        this.setErrorState();
+                    }
+                    else {
+                        this._content2 = obj;
+                        this._container.addChild(this._content2.node);
+                        this.updateLayout();
+                    }
                 }
-                else {
-                    this._content2 = obj;
-                    this._container.addChild(this._content2.node);
-                    this.updateLayout();
-                }
-            }
-            else
-                this.setErrorState();
+                else
+                    this.setErrorState();
+            });
         }
         else
             this.setErrorState();
@@ -12200,35 +12703,60 @@ class GLoader extends GObject {
         let url = this.url;
         let callback = (err, asset) => {
             //因为是异步返回的，而这时可能url已经被改变，所以不能直接用返回的结果
-            if (this._url != url || !isValid(this._node))
+            if (this.url != url || !isValid(this._node))
                 return;
             if (err)
                 console.warn(err);
             if (asset instanceof SpriteFrame)
                 this.onExternalLoadSuccess(asset);
             else if (asset instanceof Texture2D) {
-                let sf = new SpriteFrame();
-                sf.texture = asset;
-                this.onExternalLoadSuccess(sf);
+                let sp = new SpriteFrame();
+                sp.texture = asset;
+                this.onExternalLoadSuccess(sp);
             }
             else if (asset instanceof ImageAsset) {
-                let sf = new SpriteFrame();
-                let texture = new Texture2D();
-                texture.image = asset;
-                sf.texture = texture;
-                this.onExternalLoadSuccess(sf);
+                let tex = new Texture2D();
+                tex.reset({
+                    width: asset.width,
+                    height: asset.height,
+                });
+                tex.uploadData(asset.data);
+                let sp = new SpriteFrame();
+                sp.texture = tex;
+                this.onExternalLoadSuccess(sp);
             }
         };
-        if (this._url.startsWith("http://")
-            || this._url.startsWith("https://")
-            || this._url.startsWith('/'))
-            assetManager.loadRemote(this._url, callback);
-        else
-            resources.load(this._url + "/spriteFrame", Asset, callback);
+        if (this.url.startsWith("http://")
+            || this.url.startsWith("https://")
+            || this.url.startsWith('/')) {
+            if (this.extension) {
+                assetManager.loadRemote(this.url, { ext: this.extension }, callback);
+            }
+            else {
+                assetManager.loadRemote(this.url, callback);
+            }
+        }
+        else {
+            resources.load(this.url, Asset, callback);
+        }
     }
     freeExternal(texture) {
+        if (texture) {
+            texture.decRef();
+            texture.texture.decRef();
+            if (UIConfig.autoReleaseAssets) {
+                if (texture.refCount == 0) {
+                    assetManager.releaseAsset(texture);
+                }
+                if (texture.texture.refCount == 0) {
+                    assetManager.releaseAsset(texture.texture);
+                }
+            }
+        }
     }
     onExternalLoadSuccess(texture) {
+        texture.addRef();
+        texture.texture.addRef();
         this._content.spriteFrame = texture;
         this._content.type = Sprite.Type.SIMPLE;
         this.sourceWidth = texture.getRect().width;
@@ -12348,6 +12876,9 @@ class GLoader extends GObject {
             var texture = this._content.spriteFrame;
             if (texture)
                 this.freeExternal(texture);
+        }
+        else {
+            this._contentItem.decRef();
         }
         if (this._content2) {
             this._container.removeChild(this._content2.node);

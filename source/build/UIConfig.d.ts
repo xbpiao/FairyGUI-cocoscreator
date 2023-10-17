@@ -26,6 +26,8 @@ export declare class UIConfig {
     static frameTimeForAsyncUIConstruction: number;
     static linkUnderline: boolean;
     static defaultUILayer: number;
+    static defaultDelayLoad: boolean;
+    static autoReleaseAssets: boolean;
 }
 export declare function registerFont(name: string, font: Font | string, bundle?: AssetManager.Bundle): void;
 export declare function getFontByName(name: string): Font;

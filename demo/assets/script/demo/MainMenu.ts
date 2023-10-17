@@ -1,4 +1,4 @@
-import { _decorator, Component, Node } from 'cc';
+import { _decorator, Component, dynamicAtlasManager, Node } from 'cc';
 const { ccclass, property } = _decorator;
 import * as fgui from "fairygui-cc";
 
@@ -23,6 +23,8 @@ export default class MainMenu extends Component {
     private _view: fgui.GComponent = null!;
 
     onLoad() {
+        dynamicAtlasManager.enabled = false;
+        fgui.UIConfig.autoReleaseAssets = true;
         fgui.UIPackage.loadPackage("UI/MainMenu", this.onUILoaded.bind(this));
     }
 

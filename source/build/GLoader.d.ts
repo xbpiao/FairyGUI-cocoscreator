@@ -6,6 +6,10 @@ import { GObject } from "./GObject";
 import { ByteBuffer } from "./utils/ByteBuffer";
 export declare class GLoader extends GObject {
     _content: MovieClip;
+    /**
+     * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+     */
+    extension: string;
     private _url;
     private _align;
     private _verticalAlign;

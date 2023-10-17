@@ -12,6 +12,11 @@ import { ByteBuffer } from "./utils/ByteBuffer";
 export class GLoader extends GObject {
     public _content: MovieClip;
 
+    /**
+     * 用于无后缀url的情况，指定使用哪种资源类型。默认为null，表示使用自动识别。
+     */
+    extension: string = "";
+
     private _url: string;
     private _align: AlignType;
     private _verticalAlign: VertAlignType;
@@ -58,9 +63,13 @@ export class GLoader extends GObject {
             if (this._content.spriteFrame)
                 this.freeExternal(this._content.spriteFrame);
         }
-        if (this._content2)
+        if (this._content2) {
             this._content2.dispose();
+            this._content2 = null;
+        }
         super.dispose();
+
+        this.clearContent();
     }
 
     public get url(): string | null {
@@ -252,57 +261,64 @@ export class GLoader extends GObject {
     }
 
     protected loadFromPackage(itemURL: string) {
-        this._contentItem = UIPackage.getItemByURL(itemURL);
-        if (this._contentItem) {
+        let contentItem = UIPackage.getItemByURL(itemURL);
+        if (contentItem) {
+            this._contentItem = contentItem;
             this._contentItem = this._contentItem.getBranch();
             this.sourceWidth = this._contentItem.width;
             this.sourceHeight = this._contentItem.height;
             this._contentItem = this._contentItem.getHighResolution();
-            this._contentItem.load();
-
-            if (this._autoSize)
-                this.setSize(this.sourceWidth, this.sourceHeight);
-
-            if (this._contentItem.type == PackageItemType.Image) {
-                if (!this._contentItem.asset) {
-                    this.setErrorState();
+            this._contentItem.loadAsync().then(()=>{
+                if(!isValid(this.node)) {
+                    return;
                 }
-                else {
-                    this._content.spriteFrame = <SpriteFrame>this._contentItem.asset;
-                    if (this._content.fillMethod == 0) {
-                        if (this._contentItem.scale9Grid)
-                            this._content.type = Sprite.Type.SLICED;
-                        else if (this._contentItem.scaleByTile)
-                            this._content.type = Sprite.Type.TILED;
-                        else
-                            this._content.type = Sprite.Type.SIMPLE;
+
+                this._contentItem.addRef();
+
+                if (this._autoSize)
+                    this.setSize(this.sourceWidth, this.sourceHeight);
+    
+                if (this._contentItem.type == PackageItemType.Image) {
+                    if (!this._contentItem.asset) {
+                        this.setErrorState();
                     }
+                    else {
+                        this._content.spriteFrame = <SpriteFrame>this._contentItem.asset;
+                        if (this._content.fillMethod == 0) {
+                            if (this._contentItem.scale9Grid)
+                                this._content.type = Sprite.Type.SLICED;
+                            else if (this._contentItem.scaleByTile)
+                                this._content.type = Sprite.Type.TILED;
+                            else
+                                this._content.type = Sprite.Type.SIMPLE;
+                        }
+                        this.updateLayout();
+                    }
+                }
+                else if (this._contentItem.type == PackageItemType.MovieClip) {
+                    this._content.interval = this._contentItem.interval;
+                    this._content.swing = this._contentItem.swing;
+                    this._content.repeatDelay = this._contentItem.repeatDelay;
+                    this._content.frames = this._contentItem.frames;
                     this.updateLayout();
                 }
-            }
-            else if (this._contentItem.type == PackageItemType.MovieClip) {
-                this._content.interval = this._contentItem.interval;
-                this._content.swing = this._contentItem.swing;
-                this._content.repeatDelay = this._contentItem.repeatDelay;
-                this._content.frames = this._contentItem.frames;
-                this.updateLayout();
-            }
-            else if (this._contentItem.type == PackageItemType.Component) {
-                var obj: GObject = UIPackage.createObjectFromURL(itemURL);
-                if (!obj)
-                    this.setErrorState();
-                else if (!(obj instanceof GComponent)) {
-                    obj.dispose();
-                    this.setErrorState();
+                else if (this._contentItem.type == PackageItemType.Component) {
+                    var obj: GObject = UIPackage.createObjectFromURL(itemURL);
+                    if (!obj)
+                        this.setErrorState();
+                    else if (!(obj instanceof GComponent)) {
+                        obj.dispose();
+                        this.setErrorState();
+                    }
+                    else {
+                        this._content2 = obj;
+                        this._container.addChild(this._content2.node);
+                        this.updateLayout();
+                    }
                 }
-                else {
-                    this._content2 = obj;
-                    this._container.addChild(this._content2.node);
-                    this.updateLayout();
-                }
-            }
-            else
-                this.setErrorState();
+                else
+                    this.setErrorState();
+            });
         }
         else
             this.setErrorState();
@@ -313,7 +329,7 @@ export class GLoader extends GObject {
         let callback = (err: Error | null, asset: Asset) => {
             //因为是异步返回的，而这时可能url已经被改变，所以不能直接用返回的结果
 
-            if (this._url != url || !isValid(this._node))
+            if (this.url != url || !isValid(this._node))
                 return;
 
             if (err)
@@ -322,30 +338,54 @@ export class GLoader extends GObject {
             if (asset instanceof SpriteFrame)
                 this.onExternalLoadSuccess(asset);
             else if (asset instanceof Texture2D) {
-                let sf = new SpriteFrame();
-                sf.texture = asset;
-                this.onExternalLoadSuccess(sf);
-            }
-            else if (asset instanceof ImageAsset) {
-                let sf = new SpriteFrame();
-                let texture = new Texture2D();
-                texture.image = asset;
-                sf.texture = texture;
-                this.onExternalLoadSuccess(sf);
+                let sp = new SpriteFrame();
+                sp.texture = asset;
+                this.onExternalLoadSuccess(sp);
+            } else if (asset instanceof ImageAsset) {
+                let tex = new Texture2D();
+                tex.reset({
+                    width: asset.width,
+                    height: asset.height,
+                });
+                tex.uploadData(asset.data);
+                let sp = new SpriteFrame();
+                sp.texture = tex;
+                this.onExternalLoadSuccess(sp);
             }
         };
-        if (this._url.startsWith("http://")
-            || this._url.startsWith("https://")
-            || this._url.startsWith('/'))
-            assetManager.loadRemote(this._url, callback);
-        else
-            resources.load(this._url + "/spriteFrame", Asset, callback);
+        if (this.url.startsWith("http://")
+            || this.url.startsWith("https://")
+            || this.url.startsWith('/')) {
+            if (this.extension) {
+                assetManager.loadRemote(this.url, { ext: this.extension }, callback);
+            } else {
+                assetManager.loadRemote(this.url, callback);
+            }
+        } else {
+            resources.load(this.url, Asset, callback);
+        }
     }
 
     protected freeExternal(texture: SpriteFrame): void {
+        if(texture) {
+            texture.decRef();
+            texture.texture.decRef();
+
+            if(UIConfig.autoReleaseAssets) {
+                if(texture.refCount==0) {
+                    assetManager.releaseAsset(texture);
+                }
+                if(texture.texture.refCount==0) {
+                    assetManager.releaseAsset(texture.texture);
+                }
+            }
+        }
     }
 
     protected onExternalLoadSuccess(texture: SpriteFrame): void {
+        texture.addRef();
+        texture.texture.addRef();
+
         this._content.spriteFrame = texture;
         this._content.type = Sprite.Type.SIMPLE;
         this.sourceWidth = texture.getRect().width;
@@ -482,7 +522,10 @@ export class GLoader extends GObject {
             var texture: SpriteFrame = this._content.spriteFrame;
             if (texture)
                 this.freeExternal(texture);
+        }else{
+            this._contentItem.decRef();
         }
+
         if (this._content2) {
             this._container.removeChild(this._content2.node);
             this._content2.dispose();
@@ -578,11 +621,11 @@ export class GLoader extends GObject {
         this._frame = buffer.readInt();
 
         if (buffer.readBool())
-            this.color = buffer.readColor();        
+            this.color = buffer.readColor();
 
         if (this._url)
             this.loadContent();
-
+        
         this._content.fillMethod = buffer.readByte();
         if (this._content.fillMethod != 0) {
 

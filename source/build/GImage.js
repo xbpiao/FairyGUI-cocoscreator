@@ -1,4 +1,4 @@
-import { Sprite } from "cc";
+import { Sprite, isValid } from "cc";
 import { Image } from "./display/Image";
 import { ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -56,12 +56,26 @@ export class GImage extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.load();
         if (contentItem.scale9Grid)
             this._content.type = Sprite.Type.SLICED;
         else if (contentItem.scaleByTile)
             this._content.type = Sprite.Type.TILED;
-        this._content.spriteFrame = contentItem.asset;
+        contentItem.loadAsync().then(() => {
+            if (!isValid(this.node)) {
+                return;
+            }
+            this._content.spriteFrame = contentItem.asset;
+            this._content.__update();
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
+        });
+    }
+    dispose() {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+        super.dispose();
     }
     handleGrayedChanged() {
         this._content.grayscale = this._grayed;

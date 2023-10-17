@@ -6,6 +6,7 @@ import { UIPackage } from "./UIPackage";
 import { ByteBuffer } from "./utils/ByteBuffer";
 export declare class PackageItem {
     owner: UIPackage;
+    parent?: PackageItem;
     type: PackageItemType;
     objectType?: ObjectType;
     id: string;
@@ -17,6 +18,7 @@ export declare class PackageItem {
     loading?: Array<Function>;
     rawData?: ByteBuffer;
     asset?: Asset;
+    __loaded: boolean;
     highResolution?: Array<string>;
     branches?: Array<string>;
     scale9Grid?: Rect;
@@ -31,9 +33,16 @@ export declare class PackageItem {
     extensionType?: any;
     skeletonAnchor?: Vec2;
     atlasAsset?: dragonBones.DragonBonesAtlasAsset;
+    private _ref;
+    get ref(): number;
     constructor();
     load(): Asset;
+    loadAsync(): Promise<Asset>;
     getBranch(): PackageItem;
     getHighResolution(): PackageItem;
     toString(): string;
+    addRef(): void;
+    doRelease(): void;
+    decRef(): void;
+    dispose(force?: boolean): void;
 }

@@ -45,6 +45,15 @@ export declare class UIPackage {
      */
     static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void): void;
     /**
+     * 载入一个包。包的资源从Asset Bundle加载.
+     * @param bundle Asset Bundle 对象.
+     * @param path 资源相对 Asset Bundle 目录的路径.
+     * @param onProgress 加载进度回调.
+     * @param onComplete 载入成功后的回调.
+     * @param delayLoad 延迟加载资源.
+     */
+    static loadPackage(bundle: AssetManager.Bundle, path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: any, pkg: UIPackage) => void, delayLoad?: boolean): void;
+    /**
      * 载入一个包。包的资源从resources加载.
      * @param path 资源相对 resources 的路径.
      * @param onComplete 载入成功后的回调.
@@ -57,7 +66,7 @@ export declare class UIPackage {
      * @param onComplete 载入成功后的回调.
      */
     static loadPackage(path: string, onProgress?: (finish: number, total: number, item: AssetManager.RequestItem) => void, onComplete?: (error: Error, pkg: UIPackage) => void): void;
-    static removePackage(packageIdOrName: string): void;
+    static removePackage(packageIdOrName: string, disposeAll?: boolean): void;
     static createObject(pkgName: string, resName: string, userClass?: new () => GObject): GObject;
     static createObjectFromURL(url: string, userClass?: new () => GObject): GObject;
     static getItemURL(pkgName: string, resName: string): string;
@@ -65,7 +74,7 @@ export declare class UIPackage {
     static normalizeURL(url: string): string;
     static setStringsSource(source: string): void;
     private loadPackage;
-    dispose(): void;
+    dispose(force?: boolean): void;
     get id(): string;
     get name(): string;
     get path(): string;
@@ -76,10 +85,14 @@ export declare class UIPackage {
     getItemByName(resName: string): PackageItem;
     getItemAssetByName(resName: string): Asset;
     getItemAsset(item: PackageItem): Asset;
+    private loadAssetAsync;
+    getItemAssetAsync2(item: PackageItem): Promise<Asset>;
     getItemAssetAsync(item: PackageItem, onComplete?: (err: Error, item: PackageItem) => void): void;
     loadAllAssets(): void;
+    private loadMovieClipAsync;
     private loadMovieClip;
     private loadFont;
+    private loadFontAsync;
     private loadSpine;
     private loadDragonBones;
 }

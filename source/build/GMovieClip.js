@@ -1,4 +1,4 @@
-import { Sprite } from "cc";
+import { Sprite, isValid } from "cc";
 import { MovieClip } from "./display/MovieClip";
 import { ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -108,12 +108,25 @@ export class GMovieClip extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.load();
-        this._content.interval = contentItem.interval;
-        this._content.swing = contentItem.swing;
-        this._content.repeatDelay = contentItem.repeatDelay;
-        this._content.frames = contentItem.frames;
-        this._content.smoothing = contentItem.smoothing;
+        contentItem.loadAsync().then(() => {
+            if (!isValid(this.node)) {
+                return;
+            }
+            this._content.interval = contentItem.interval;
+            this._content.swing = contentItem.swing;
+            this._content.repeatDelay = contentItem.repeatDelay;
+            this._content.frames = contentItem.frames;
+            this._content.smoothing = contentItem.smoothing;
+            this._contentPackageItem = contentItem;
+            this._contentPackageItem.addRef();
+        });
+    }
+    dispose() {
+        if (this._contentPackageItem) {
+            this._contentPackageItem.decRef();
+            this._contentPackageItem = null;
+        }
+        super.dispose();
     }
     setup_beforeAdd(buffer, beginPos) {
         super.setup_beforeAdd(buffer, beginPos);

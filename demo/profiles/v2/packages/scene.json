@@ -35,8 +35,8 @@
   "camera-infos": {
     "f46876e4-e81b-4931-b493-6d367be385e7": {
       "position": {
-        "x": 613,
-        "y": 446.5,
+        "x": 656.5,
+        "y": 524,
         "z": 5000
       },
       "rotation": {
@@ -53,8 +53,8 @@
     },
     "ecb26ae3-1542-423f-939b-f4a0ffce9f0b": {
       "position": {
-        "x": 613.5,
-        "y": 447,
+        "x": 660.0762578867232,
+        "y": 378.1879292117687,
         "z": 5000
       },
       "rotation": {
@@ -71,8 +71,8 @@
     },
     "7c3e7fab-7b1e-4865-ba84-3cf81b48b9fb": {
       "position": {
-        "x": 480,
-        "y": 320,
+        "x": 490.5283913663095,
+        "y": 419.0883686703188,
         "z": 5000
       },
       "rotation": {
@@ -91,26 +91,6 @@
   "camera-uuids": [
     "ecb26ae3-1542-423f-939b-f4a0ffce9f0b"
   ],
-  "builder": {},
-  "": {
-    "sculpt_brush_rotate": 0
-  },
-  "snap-configs": {
-    "position": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-    },
-    "rotation": 1,
-    "scale": 1,
-    "isPositionSnapEnabled": false,
-    "isRotationSnapEnabled": false,
-    "isScaleSnapEnabled": false
-  },
-  "rect-snap-configs": {
-    "enableSnapping": true,
-    "snapThreshold": 4
-  },
   "camera": {
     "fov": 45,
     "far": 10000,
@@ -131,5 +111,25 @@
     "iso": 0,
     "aperture": 19,
     "shutter": 7
+  },
+  "builder": {},
+  "": {
+    "sculpt_brush_rotate": 0
+  },
+  "snap-configs": {
+    "position": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "rotation": 1,
+    "scale": 1,
+    "isPositionSnapEnabled": false,
+    "isRotationSnapEnabled": false,
+    "isScaleSnapEnabled": false
+  },
+  "rect-snap-configs": {
+    "enableSnapping": true,
+    "snapThreshold": 4
   }
 }
