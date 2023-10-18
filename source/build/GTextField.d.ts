@@ -1,7 +1,6 @@
 import { Color, Font, HorizontalTextAlignment, Label, LabelOutline, LabelShadow, Vec2, VerticalTextAlignment } from "cc";
 import { AutoSizeType } from "./FieldTypes";
 import { GObject } from "./GObject";
-import { PackageItem } from "./PackageItem";
 import { ByteBuffer } from "./utils/ByteBuffer";
 export declare class GTextField extends GObject {
     _label: Label;
@@ -23,14 +22,12 @@ export declare class GTextField extends GObject {
     protected _sizeDirty: boolean;
     protected _outline?: LabelOutline;
     protected _shadow?: LabelShadow;
-    protected _fontPackageItem?: PackageItem;
     constructor();
     protected createRenderer(): void;
     set text(value: string | null);
     get text(): string | null;
     get font(): string | null;
     set font(value: string | null);
-    dispose(): void;
     get fontSize(): number;
     set fontSize(value: number);
     get color(): Color;

@@ -754,9 +754,7 @@ export class UIPackage {
                 if (!item.decoded) {
                     item.decoded = true;
                     await this.loadFontAsync(item);  
-                    if(!UIConfig.autoReleaseAssets) {
-                        item.addRef();
-                    }     
+                    item.addRef();       
                     item.__loaded = true;
                 }
                 break;
@@ -1137,12 +1135,9 @@ export class UIPackage {
         font.fntConfig.resizable = resizable;
         font.fntConfig.canTint = canTint;
 
-        if(mainSprite) {
-            if (!mainTexture) {
-                await mainSprite.atlas.loadAsync();
-                mainTexture = <Texture2D>mainSprite.atlas.asset;
-            }
-            item.parent = mainSprite.atlas;
+        if (!mainTexture && mainSprite) {
+            await mainSprite.atlas.loadAsync();
+            mainTexture = <Texture2D>mainSprite.atlas.asset;
         }
         
         let spriteFrame = new SpriteFrame();

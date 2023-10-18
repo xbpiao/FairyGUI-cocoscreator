@@ -4648,11 +4648,8 @@ class RefMannager {
         this._deletes.push(item);
     }
     static update(dt) {
-        if (this._deletes.length == 0) {
-            return;
-        }
         this._timer += dt;
-        if (this._timer >= 5) {
+        if (this._timer >= 10) {
             this._timer = 0;
             for (let i = this._deletes.length - 1; i >= 0; i--) {
                 let item = this._deletes[i];
@@ -5788,9 +5785,7 @@ class UIPackage {
                     if (!item.decoded) {
                         item.decoded = true;
                         yield this.loadFontAsync(item);
-                        if (!UIConfig.autoReleaseAssets) {
-                            item.addRef();
-                        }
+                        item.addRef();
                         item.__loaded = true;
                     }
                     break;
@@ -6103,12 +6098,9 @@ class UIPackage {
             font.fntConfig.commonHeight = lineHeight == 0 ? fontSize : lineHeight;
             font.fntConfig.resizable = resizable;
             font.fntConfig.canTint = canTint;
-            if (mainSprite) {
-                if (!mainTexture) {
-                    yield mainSprite.atlas.loadAsync();
-                    mainTexture = mainSprite.atlas.asset;
-                }
-                item.parent = mainSprite.atlas;
+            if (!mainTexture && mainSprite) {
+                yield mainSprite.atlas.loadAsync();
+                mainTexture = mainSprite.atlas.asset;
             }
             let spriteFrame = new SpriteFrame();
             spriteFrame.texture = mainTexture;
@@ -6355,20 +6347,16 @@ class GTextField extends GObject {
             let newFont = value ? value : UIConfig.defaultFont;
             if (newFont.startsWith("ui://")) {
                 var pi = UIPackage.getItemByURL(newFont);
-                if (pi) {
+                if (pi)
                     newFont = pi.owner.getItemAssetAsync2(pi);
-                    this._fontPackageItem = pi;
-                }
                 else
                     newFont = UIConfig.defaultFont;
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
-                    var _a;
                     if (!isValid(this._node)) {
                         return;
                     }
-                    (_a = this._fontPackageItem) === null || _a === void 0 ? void 0 : _a.addRef();
                     this._realFont = asset;
                     this.updateFont();
                 });
@@ -6377,13 +6365,6 @@ class GTextField extends GObject {
                 this._realFont = newFont;
                 this.updateFont();
             }
-        }
-    }
-    dispose() {
-        super.dispose();
-        if (this._fontPackageItem) {
-            this._fontPackageItem.decRef();
-            this._fontPackageItem = null;
         }
     }
     get fontSize() {
@@ -6952,12 +6933,8 @@ class GRichTextField extends GTextField {
 }
 
 class InputProcessor extends Component {
-    get touching() {
-        return this._touching;
-    }
     constructor() {
         super();
-        this._touching = false;
         this._touches = new Array();
         this._rollOutChain = new Array();
         this._rollOverChain = new Array();
@@ -7065,7 +7042,6 @@ class InputProcessor extends Component {
         returnEvent(evt);
     }
     touchBeginHandler(evt) {
-        this._touching = true;
         let ti = this.updateInfo(evt.getID(), evt.getLocation());
         this.setBegin(ti);
         if (this._touchListener) {
@@ -7113,7 +7089,6 @@ class InputProcessor extends Component {
         }
     }
     touchEndHandler(evt) {
-        this._touching = false;
         let ti = this.updateInfo(evt.getID(), evt.getLocation());
         if (!this._touchListener) {
             let e = evt;
@@ -7156,7 +7131,6 @@ class InputProcessor extends Component {
         ti.button = -1;
     }
     touchCancelHandler(evt) {
-        this._touching = false;
         let ti = this.updateInfo(evt.getID(), evt.getLocation());
         if (!this._touchListener) {
             let e = evt;
@@ -12260,8 +12234,8 @@ class GRoot extends GComponent {
     }
     onUpdate() {
         super.onUpdate();
-        if (!this._inputProcessor.touching) {
-            RefMannager.update(game.frameTime / 1000);
+        if (!this.touchTarget) {
+            RefMannager.update(game.frameTime);
         }
     }
 }

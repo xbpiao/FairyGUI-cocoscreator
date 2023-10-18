@@ -4,12 +4,8 @@ import { GRichTextField } from "../GRichTextField";
 import { UIContentScaler } from "../UIContentScaler";
 import { borrowEvent, Event as FUIEvent, returnEvent } from "./Event";
 export class InputProcessor extends Component {
-    get touching() {
-        return this._touching;
-    }
     constructor() {
         super();
-        this._touching = false;
         this._touches = new Array();
         this._rollOutChain = new Array();
         this._rollOverChain = new Array();
@@ -117,7 +113,6 @@ export class InputProcessor extends Component {
         returnEvent(evt);
     }
     touchBeginHandler(evt) {
-        this._touching = true;
         let ti = this.updateInfo(evt.getID(), evt.getLocation());
         this.setBegin(ti);
         if (this._touchListener) {
@@ -165,7 +160,6 @@ export class InputProcessor extends Component {
         }
     }
     touchEndHandler(evt) {
-        this._touching = false;
         let ti = this.updateInfo(evt.getID(), evt.getLocation());
         if (!this._touchListener) {
             let e = evt;
@@ -208,7 +202,6 @@ export class InputProcessor extends Component {
         ti.button = -1;
     }
     touchCancelHandler(evt) {
-        this._touching = false;
         let ti = this.updateInfo(evt.getID(), evt.getLocation());
         if (!this._touchListener) {
             let e = evt;

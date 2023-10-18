@@ -14,10 +14,7 @@
     ],
     "isIconGizmo3D": false,
     "iconGizmoSize": 2,
-    "isGridVisible": true,
-    "transformToolName": "position",
-    "pivot": "pivot",
-    "coordinate": "local"
+    "isGridVisible": true
   },
   "float-window": {
     "position": {
@@ -53,8 +50,8 @@
     },
     "ecb26ae3-1542-423f-939b-f4a0ffce9f0b": {
       "position": {
-        "x": 660.0762578867232,
-        "y": 378.1879292117687,
+        "x": 526.9106940333867,
+        "y": 360.2013169135617,
         "z": 5000
       },
       "rotation": {
@@ -71,8 +68,8 @@
     },
     "7c3e7fab-7b1e-4865-ba84-3cf81b48b9fb": {
       "position": {
-        "x": 490.5283913663095,
-        "y": 419.0883686703188,
+        "x": 158.49203748877187,
+        "y": 110.42949979840895,
         "z": 5000
       },
       "rotation": {
@@ -89,7 +86,7 @@
     }
   },
   "camera-uuids": [
-    "f46876e4-e81b-4931-b493-6d367be385e7"
+    "ecb26ae3-1542-423f-939b-f4a0ffce9f0b"
   ],
   "camera": {
     "fov": 45,
@@ -107,25 +104,5 @@
     "far2D": 10000,
     "near2D": 1,
     "wheelSpeed2D": 6
-  },
-  "builder": {},
-  "": {
-    "sculpt_brush_rotate": 0
-  },
-  "snap-configs": {
-    "position": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-    },
-    "rotation": 1,
-    "scale": 1,
-    "isPositionSnapEnabled": false,
-    "isRotationSnapEnabled": false,
-    "isScaleSnapEnabled": false
-  },
-  "rect-snap-configs": {
-    "enableSnapping": true,
-    "snapThreshold": 4
   }
 }
