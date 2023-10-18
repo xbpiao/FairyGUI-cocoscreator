@@ -14,6 +14,7 @@ export class GLoader extends GObject {
          */
         this.extension = "";
         this._frame = 0;
+        this._dirtyVersion = 0;
         this._node.name = "GLoader";
         this._playing = true;
         this._url = "";
@@ -172,6 +173,7 @@ export class GLoader extends GObject {
     }
     set texture(value) {
         this.url = null;
+        this.clearContent();
         this._content.spriteFrame = value;
         this._content.type = Sprite.Type.SIMPLE;
         if (value != null) {
@@ -193,6 +195,8 @@ export class GLoader extends GObject {
             this.loadExternal();
     }
     loadFromPackage(itemURL) {
+        this._dirtyVersion++;
+        let dirtyVersion = this._dirtyVersion;
         let contentItem = UIPackage.getItemByURL(itemURL);
         if (contentItem) {
             contentItem = contentItem.getBranch();
@@ -200,7 +204,7 @@ export class GLoader extends GObject {
             this.sourceHeight = contentItem.height;
             contentItem = contentItem.getHighResolution();
             contentItem.loadAsync().then(() => {
-                if (!isValid(this.node)) {
+                if (!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
                     return;
                 }
                 this._contentItem = contentItem;
@@ -425,7 +429,9 @@ export class GLoader extends GObject {
     }
     clearContent() {
         this.clearErrorState();
-        if (!this._contentItem) {
+        if (!this.url && this._contentItem) {
+        }
+        else if (!this._contentItem) {
             var texture = this._content.spriteFrame;
             if (texture)
                 this.freeExternal(texture);

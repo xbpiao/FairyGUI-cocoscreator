@@ -24,6 +24,7 @@ export declare class GTextField extends GObject {
     protected _outline?: LabelOutline;
     protected _shadow?: LabelShadow;
     protected _fontPackageItem?: PackageItem;
+    private _dirtyVersion;
     constructor();
     protected createRenderer(): void;
     set text(value: string | null);

@@ -32,6 +32,7 @@ export class GLoader extends GObject {
     private _errorSign?: GObject;
     private _content2?: GComponent;
     private _updatingLayout: boolean;
+    private _dirtyVersion: number = 0;
 
     private static _errorSignPool: GObjectPool = new GObjectPool();
 
@@ -234,6 +235,7 @@ export class GLoader extends GObject {
 
     public set texture(value: SpriteFrame) {
         this.url = null;
+        this.clearContent();
 
         this._content.spriteFrame = value;
         this._content.type = Sprite.Type.SIMPLE;
@@ -261,14 +263,17 @@ export class GLoader extends GObject {
     }
 
     protected loadFromPackage(itemURL: string) {
+        this._dirtyVersion++;
+        let dirtyVersion = this._dirtyVersion;
+
         let contentItem = UIPackage.getItemByURL(itemURL);
         if (contentItem) {
             contentItem = contentItem.getBranch();
             this.sourceWidth = contentItem.width;
             this.sourceHeight = contentItem.height;
-            contentItem= contentItem.getHighResolution();
+            contentItem = contentItem.getHighResolution();
             contentItem.loadAsync().then(()=>{
-                if(!isValid(this.node)) {
+                if(!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
                     return;
                 }
 
@@ -518,7 +523,9 @@ export class GLoader extends GObject {
     private clearContent(): void {
         this.clearErrorState();
 
-        if (!this._contentItem) {
+        if(!this.url && this._contentItem) {
+
+        }else if (!this._contentItem) {
             var texture: SpriteFrame = this._content.spriteFrame;
             if (texture)
                 this.freeExternal(texture);

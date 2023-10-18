@@ -6313,6 +6313,7 @@ class GTextField extends GObject {
         super();
         this._fontSize = 0;
         this._leading = 0;
+        this._dirtyVersion = 0;
         this._node.name = "GTextField";
         this._touchDisabled = true;
         this._text = "";
@@ -6346,6 +6347,8 @@ class GTextField extends GObject {
     }
     set font(value) {
         if (this._font != value || !value) {
+            this._dirtyVersion++;
+            let dirtyVersion = this._dirtyVersion;
             this._font = value;
             this.markSizeChanged();
             let newFont = value ? value : UIConfig.defaultFont;
@@ -6360,7 +6363,7 @@ class GTextField extends GObject {
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
-                    if (!isValid(this._node)) {
+                    if (!isValid(this._node) || this._dirtyVersion != dirtyVersion) {
                         return;
                     }
                     this._fontPackageItem = pi;
@@ -12492,6 +12495,7 @@ class GLoader extends GObject {
          */
         this.extension = "";
         this._frame = 0;
+        this._dirtyVersion = 0;
         this._node.name = "GLoader";
         this._playing = true;
         this._url = "";
@@ -12650,6 +12654,7 @@ class GLoader extends GObject {
     }
     set texture(value) {
         this.url = null;
+        this.clearContent();
         this._content.spriteFrame = value;
         this._content.type = Sprite.Type.SIMPLE;
         if (value != null) {
@@ -12671,6 +12676,8 @@ class GLoader extends GObject {
             this.loadExternal();
     }
     loadFromPackage(itemURL) {
+        this._dirtyVersion++;
+        let dirtyVersion = this._dirtyVersion;
         let contentItem = UIPackage.getItemByURL(itemURL);
         if (contentItem) {
             contentItem = contentItem.getBranch();
@@ -12678,7 +12685,7 @@ class GLoader extends GObject {
             this.sourceHeight = contentItem.height;
             contentItem = contentItem.getHighResolution();
             contentItem.loadAsync().then(() => {
-                if (!isValid(this.node)) {
+                if (!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
                     return;
                 }
                 this._contentItem = contentItem;
@@ -12903,7 +12910,8 @@ class GLoader extends GObject {
     }
     clearContent() {
         this.clearErrorState();
-        if (!this._contentItem) {
+        if (!this.url && this._contentItem) ;
+        else if (!this._contentItem) {
             var texture = this._content.spriteFrame;
             if (texture)
                 this.freeExternal(texture);

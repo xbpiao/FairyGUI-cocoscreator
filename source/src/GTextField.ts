@@ -29,6 +29,7 @@ export class GTextField extends GObject {
     protected _outline?: LabelOutline;
     protected _shadow?: LabelShadow;
     protected _fontPackageItem?: PackageItem;
+    private _dirtyVersion: number = 0;
 
     public constructor() {
         super();
@@ -77,6 +78,9 @@ export class GTextField extends GObject {
 
     public set font(value: string | null) {
         if (this._font != value || !value) {
+            this._dirtyVersion++;
+            let dirtyVersion = this._dirtyVersion;
+
             this._font = value;
 
             this.markSizeChanged();
@@ -95,7 +99,7 @@ export class GTextField extends GObject {
 
             if(newFont instanceof Promise) {
                 newFont.then((asset)=>{     
-                    if(!isValid(this._node)){
+                    if(!isValid(this._node) || this._dirtyVersion != dirtyVersion){
                         return;
                     }
                       

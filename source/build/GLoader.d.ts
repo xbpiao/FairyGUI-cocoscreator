@@ -25,6 +25,7 @@ export declare class GLoader extends GObject {
     private _errorSign?;
     private _content2?;
     private _updatingLayout;
+    private _dirtyVersion;
     private static _errorSignPool;
     constructor();
     dispose(): void;

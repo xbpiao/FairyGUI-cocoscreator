@@ -11,6 +11,7 @@ export class GTextField extends GObject {
         super();
         this._fontSize = 0;
         this._leading = 0;
+        this._dirtyVersion = 0;
         this._node.name = "GTextField";
         this._touchDisabled = true;
         this._text = "";
@@ -44,6 +45,8 @@ export class GTextField extends GObject {
     }
     set font(value) {
         if (this._font != value || !value) {
+            this._dirtyVersion++;
+            let dirtyVersion = this._dirtyVersion;
             this._font = value;
             this.markSizeChanged();
             let newFont = value ? value : UIConfig.defaultFont;
@@ -58,7 +61,7 @@ export class GTextField extends GObject {
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
-                    if (!isValid(this._node)) {
+                    if (!isValid(this._node) || this._dirtyVersion != dirtyVersion) {
                         return;
                     }
                     this._fontPackageItem = pi;
