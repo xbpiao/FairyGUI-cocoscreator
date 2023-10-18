@@ -6349,11 +6349,11 @@ class GTextField extends GObject {
             this._font = value;
             this.markSizeChanged();
             let newFont = value ? value : UIConfig.defaultFont;
+            var pi = null;
             if (newFont.startsWith("ui://")) {
-                var pi = UIPackage.getItemByURL(newFont);
+                pi = UIPackage.getItemByURL(newFont);
                 if (pi) {
                     newFont = pi.owner.getItemAssetAsync2(pi);
-                    this._fontPackageItem = pi;
                 }
                 else
                     newFont = UIConfig.defaultFont;
@@ -6363,6 +6363,7 @@ class GTextField extends GObject {
                     if (!isValid(this._node)) {
                         return;
                     }
+                    this._fontPackageItem = pi;
                     this._fontPackageItem.addRef();
                     this._realFont = asset;
                     this.updateFont();
@@ -12672,15 +12673,15 @@ class GLoader extends GObject {
     loadFromPackage(itemURL) {
         let contentItem = UIPackage.getItemByURL(itemURL);
         if (contentItem) {
-            this._contentItem = contentItem;
-            this._contentItem = this._contentItem.getBranch();
-            this.sourceWidth = this._contentItem.width;
-            this.sourceHeight = this._contentItem.height;
-            this._contentItem = this._contentItem.getHighResolution();
-            this._contentItem.loadAsync().then(() => {
+            contentItem = contentItem.getBranch();
+            this.sourceWidth = contentItem.width;
+            this.sourceHeight = contentItem.height;
+            contentItem = contentItem.getHighResolution();
+            contentItem.loadAsync().then(() => {
                 if (!isValid(this.node)) {
                     return;
                 }
+                this._contentItem = contentItem;
                 this._contentItem.addRef();
                 if (this._autoSize)
                     this.setSize(this.sourceWidth, this.sourceHeight);

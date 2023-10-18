@@ -195,15 +195,15 @@ export class GLoader extends GObject {
     loadFromPackage(itemURL) {
         let contentItem = UIPackage.getItemByURL(itemURL);
         if (contentItem) {
-            this._contentItem = contentItem;
-            this._contentItem = this._contentItem.getBranch();
-            this.sourceWidth = this._contentItem.width;
-            this.sourceHeight = this._contentItem.height;
-            this._contentItem = this._contentItem.getHighResolution();
-            this._contentItem.loadAsync().then(() => {
+            contentItem = contentItem.getBranch();
+            this.sourceWidth = contentItem.width;
+            this.sourceHeight = contentItem.height;
+            contentItem = contentItem.getHighResolution();
+            contentItem.loadAsync().then(() => {
                 if (!isValid(this.node)) {
                     return;
                 }
+                this._contentItem = contentItem;
                 this._contentItem.addRef();
                 if (this._autoSize)
                     this.setSize(this.sourceWidth, this.sourceHeight);

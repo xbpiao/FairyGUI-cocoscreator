@@ -47,11 +47,11 @@ export class GTextField extends GObject {
             this._font = value;
             this.markSizeChanged();
             let newFont = value ? value : UIConfig.defaultFont;
+            var pi = null;
             if (newFont.startsWith("ui://")) {
-                var pi = UIPackage.getItemByURL(newFont);
+                pi = UIPackage.getItemByURL(newFont);
                 if (pi) {
                     newFont = pi.owner.getItemAssetAsync2(pi);
-                    this._fontPackageItem = pi;
                 }
                 else
                     newFont = UIConfig.defaultFont;
@@ -61,6 +61,7 @@ export class GTextField extends GObject {
                     if (!isValid(this._node)) {
                         return;
                     }
+                    this._fontPackageItem = pi;
                     this._fontPackageItem.addRef();
                     this._realFont = asset;
                     this.updateFont();

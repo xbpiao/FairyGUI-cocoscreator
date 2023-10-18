@@ -83,11 +83,11 @@ export class GTextField extends GObject {
 
             let newFont: any = value ? value : UIConfig.defaultFont;
 
+            var pi: PackageItem = null;
             if (newFont.startsWith("ui://")) {
-                var pi: PackageItem = UIPackage.getItemByURL(newFont);
+                pi = UIPackage.getItemByURL(newFont);
                 if (pi) {
                     newFont = pi.owner.getItemAssetAsync2(pi);
-                    this._fontPackageItem = pi;
                 }
                 else
                     newFont = UIConfig.defaultFont;
@@ -97,8 +97,9 @@ export class GTextField extends GObject {
                 newFont.then((asset)=>{     
                     if(!isValid(this._node)){
                         return;
-                    }          
+                    }
                       
+                    this._fontPackageItem = pi;
                     this._fontPackageItem.addRef();
                     this._realFont = asset;
                     this.updateFont();
