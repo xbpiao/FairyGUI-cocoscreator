@@ -449,8 +449,8 @@ export class GRoot extends GComponent {
     protected onUpdate(): void {
         super.onUpdate();
 
-        if(!this.touchTarget) {
-            RefMannager.update(game.frameTime);
+        if(!this._inputProcessor.touching) {
+            RefMannager.update(game.frameTime / 1000);
         }
     }
 }

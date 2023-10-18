@@ -440,6 +440,7 @@ declare module 'fairygui-cc/GTextField' {
     import { Color, Font, HorizontalTextAlignment, Label, LabelOutline, LabelShadow, Vec2, VerticalTextAlignment } from "cc";
     import { AutoSizeType } from "fairygui-cc/FieldTypes";
     import { GObject } from "fairygui-cc/GObject";
+    import { PackageItem } from "fairygui-cc/PackageItem";
     import { ByteBuffer } from "fairygui-cc/utils/ByteBuffer";
     export class GTextField extends GObject {
         _label: Label;
@@ -461,12 +462,14 @@ declare module 'fairygui-cc/GTextField' {
         protected _sizeDirty: boolean;
         protected _outline?: LabelOutline;
         protected _shadow?: LabelShadow;
+        protected _fontPackageItem?: PackageItem;
         constructor();
         protected createRenderer(): void;
         set text(value: string | null);
         get text(): string | null;
         get font(): string | null;
         set font(value: string | null);
+        dispose(): void;
         get fontSize(): number;
         set fontSize(value: number);
         get color(): Color;
@@ -2342,6 +2345,7 @@ declare module 'fairygui-cc/event/InputProcessor' {
     import { Event as FUIEvent } from "fairygui-cc/event/Event";
     export class InputProcessor extends Component {
         _captureCallback: (evt: FUIEvent) => void;
+        get touching(): boolean;
         constructor();
         onLoad(): void;
         onEnable(): void;

@@ -3,8 +3,11 @@ export class RefMannager {
         this._deletes.push(item);
     }
     static update(dt) {
+        if (this._deletes.length == 0) {
+            return;
+        }
         this._timer += dt;
-        if (this._timer >= 10) {
+        if (this._timer >= 5) {
             this._timer = 0;
             for (let i = this._deletes.length - 1; i >= 0; i--) {
                 let item = this._deletes[i];
