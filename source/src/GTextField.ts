@@ -98,13 +98,15 @@ export class GTextField extends GObject {
                         return;
                     }          
                       
-                    this._fontPackageItem?.addRef();
+                    this._fontPackageItem.addRef();
                     this._realFont = asset;
-                    this.updateFont();
+                    this.updateFont();      
+                    this.updateFontSize();
                 })
             }else{
                 this._realFont = newFont;
-                this.updateFont();
+                this.updateFont();            
+                this.updateFontSize();
             }
         }
     }

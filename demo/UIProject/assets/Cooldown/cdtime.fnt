@@ -1,5 +1,4 @@
-info creator=UIBuilder
-common lineHeight=0
+info size=45 colored=false
 char id=48 img=p3yaw xoffset=0 yoffset=0 xadvance=35
 char id=49 img=p3yax xoffset=0 yoffset=0 xadvance=35
 char id=50 img=p3yay xoffset=0 yoffset=0 xadvance=35

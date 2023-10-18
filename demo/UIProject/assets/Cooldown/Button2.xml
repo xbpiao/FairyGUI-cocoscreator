@@ -10,7 +10,7 @@
     </image>
     <loader id="n2" name="icon" xy="9,10" size="80,80" fill="scaleFree"/>
     <image id="n0" name="btn" src="p3yau" fileName="images/12.png" xy="9,9"/>
-    <text id="n3" name="title" xy="8,23" size="81,60" font="ui://y768eypfp3yav" fontSize="24" align="center" autoSize="none" singleLine="true" text="5"/>
+    <text id="n3" name="title" xy="8,23" size="81,55" font="ui://y768eypfp3yav" fontSize="24" align="center" autoSize="none" singleLine="true" text="5"/>
     <image id="n7" name="bar" src="uo8118" fileName="images/mask1.png" xy="10,11" alpha="0.6" fillMethod="radial360" fillClockwise="false"/>
   </displayList>
   <ProgressBar titleType="value"/>

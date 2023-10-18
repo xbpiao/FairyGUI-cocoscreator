@@ -57,18 +57,19 @@ export class GTextField extends GObject {
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
-                    var _a;
                     if (!isValid(this._node)) {
                         return;
                     }
-                    (_a = this._fontPackageItem) === null || _a === void 0 ? void 0 : _a.addRef();
+                    this._fontPackageItem.addRef();
                     this._realFont = asset;
                     this.updateFont();
+                    this.updateFontSize();
                 });
             }
             else {
                 this._realFont = newFont;
                 this.updateFont();
+                this.updateFontSize();
             }
         }
     }
