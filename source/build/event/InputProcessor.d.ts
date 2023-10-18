@@ -8,7 +8,9 @@ export declare class InputProcessor extends Component {
     private _touches;
     private _rollOutChain;
     private _rollOverChain;
+    private _touching;
     _captureCallback: (evt: FUIEvent) => void;
+    get touching(): boolean;
     constructor();
     onLoad(): void;
     onEnable(): void;

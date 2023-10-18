@@ -1,4 +1,4 @@
-import { BitmapFont, Color, Font, HorizontalTextAlignment, Label, LabelOutline, LabelShadow, Node, SystemEventType, UITransform, Vec2, VerticalTextAlignment } from "cc";
+import { BitmapFont, Color, Font, HorizontalTextAlignment, Label, LabelOutline, LabelShadow, Node, SystemEventType, Vec2, VerticalTextAlignment, isValid } from "cc";
 import { Event as FUIEvent } from "./event/Event";
 import { AutoSizeType, ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -28,6 +28,7 @@ export class GTextField extends GObject {
     protected _sizeDirty: boolean;
     protected _outline?: LabelOutline;
     protected _shadow?: LabelShadow;
+    protected _fontPackageItem?: PackageItem;
 
     public constructor() {
         super();
@@ -84,14 +85,21 @@ export class GTextField extends GObject {
 
             if (newFont.startsWith("ui://")) {
                 var pi: PackageItem = UIPackage.getItemByURL(newFont);
-                if (pi)
+                if (pi) {
                     newFont = pi.owner.getItemAssetAsync2(pi);
+                    this._fontPackageItem = pi;
+                }
                 else
                     newFont = UIConfig.defaultFont;
             }
 
             if(newFont instanceof Promise) {
-                newFont.then((asset)=>{                    
+                newFont.then((asset)=>{     
+                    if(!isValid(this._node)){
+                        return;
+                    }          
+                      
+                    this._fontPackageItem?.addRef();
                     this._realFont = asset;
                     this.updateFont();
                 })
@@ -99,6 +107,15 @@ export class GTextField extends GObject {
                 this._realFont = newFont;
                 this.updateFont();
             }
+        }
+    }
+
+    public dispose(): void {
+        super.dispose();
+
+        if (this._fontPackageItem) {
+            this._fontPackageItem.decRef();
+            this._fontPackageItem = null;
         }
     }
 

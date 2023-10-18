@@ -1,4 +1,4 @@
-import { BitmapFont, Color, Font, Label, LabelOutline, LabelShadow, Node, Vec2 } from "cc";
+import { BitmapFont, Color, Font, Label, LabelOutline, LabelShadow, Node, Vec2, isValid } from "cc";
 import { Event as FUIEvent } from "./event/Event";
 import { AutoSizeType, ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -49,13 +49,20 @@ export class GTextField extends GObject {
             let newFont = value ? value : UIConfig.defaultFont;
             if (newFont.startsWith("ui://")) {
                 var pi = UIPackage.getItemByURL(newFont);
-                if (pi)
+                if (pi) {
                     newFont = pi.owner.getItemAssetAsync2(pi);
+                    this._fontPackageItem = pi;
+                }
                 else
                     newFont = UIConfig.defaultFont;
             }
             if (newFont instanceof Promise) {
                 newFont.then((asset) => {
+                    var _a;
+                    if (!isValid(this._node)) {
+                        return;
+                    }
+                    (_a = this._fontPackageItem) === null || _a === void 0 ? void 0 : _a.addRef();
                     this._realFont = asset;
                     this.updateFont();
                 });
@@ -64,6 +71,13 @@ export class GTextField extends GObject {
                 this._realFont = newFont;
                 this.updateFont();
             }
+        }
+    }
+    dispose() {
+        super.dispose();
+        if (this._fontPackageItem) {
+            this._fontPackageItem.decRef();
+            this._fontPackageItem = null;
         }
     }
     get fontSize() {

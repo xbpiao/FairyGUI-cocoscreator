@@ -121,12 +121,12 @@ export class GMovieClip extends GObject {
             this._contentPackageItem.addRef();
         });
     }
-    dispose() {
+    onDestroy() {
         if (this._contentPackageItem) {
             this._contentPackageItem.decRef();
             this._contentPackageItem = null;
         }
-        super.dispose();
+        super.onDestroy();
     }
     setup_beforeAdd(buffer, beginPos) {
         super.setup_beforeAdd(buffer, beginPos);
