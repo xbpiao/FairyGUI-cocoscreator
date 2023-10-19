@@ -12706,6 +12706,10 @@ class GLoader extends GObject {
                             else
                                 this._content.type = Sprite.Type.SIMPLE;
                         }
+                        else {
+                            this._content.type = Sprite.Type.FILLED;
+                        }
+                        this._content.__update();
                         this.updateLayout();
                     }
                 }

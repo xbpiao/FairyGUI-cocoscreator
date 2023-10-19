@@ -296,7 +296,10 @@ export class GLoader extends GObject {
                                 this._content.type = Sprite.Type.TILED;
                             else
                                 this._content.type = Sprite.Type.SIMPLE;
+                        }else{
+                            this._content.type = Sprite.Type.FILLED;
                         }
+                        this._content.__update();
                         this.updateLayout();
                     }
                 }
