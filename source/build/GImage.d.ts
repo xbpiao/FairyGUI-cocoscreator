@@ -19,6 +19,7 @@ export declare class GImage extends GObject {
     set fillClockwise(value: boolean);
     get fillAmount(): number;
     set fillAmount(value: number);
+    private init;
     constructFromResource(): void;
     dispose(): void;
     protected handleGrayedChanged(): void;

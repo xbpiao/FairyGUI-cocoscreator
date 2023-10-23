@@ -4,6 +4,7 @@ import { FlipType, FillMethod, FillOrigin, ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
 import { PackageItem } from "./PackageItem";
 import { ByteBuffer } from "./utils/ByteBuffer";
+import { UIConfig } from "./UIConfig";
 
 export class GImage extends GObject {
     public _content: Image;
@@ -68,6 +69,18 @@ export class GImage extends GObject {
         this._content.fillAmount = value;
     }
 
+    private init(contentItem: PackageItem): void {
+        if(!isValid(this.node)) {
+            return;
+        }
+
+        this._content.spriteFrame = <SpriteFrame>contentItem.asset;
+        this._content.__update();
+    
+        this._contentPackageItem = contentItem;
+        this._contentPackageItem.addRef();
+    }
+
     public constructFromResource(): void {
         var contentItem: PackageItem = this.packageItem.getBranch();
         this.sourceWidth = contentItem.width;
@@ -83,17 +96,13 @@ export class GImage extends GObject {
         else if (contentItem.scaleByTile)
             this._content.type = Sprite.Type.TILED;
             
-        contentItem.loadAsync().then(()=>{
-            if(!isValid(this.node)) {
-                return;
-            }
-
-            this._content.spriteFrame = <SpriteFrame>contentItem.asset;
-            this._content.__update();
-        
-            this._contentPackageItem = contentItem;
-            this._contentPackageItem.addRef();
-        });
+        if(!UIConfig.enableDelayLoad || contentItem.__loaded && contentItem.decoded) {
+            this.init(contentItem);
+        }else{
+            contentItem.loadAsync().then(()=>{
+                this.init(contentItem);
+            });
+        }
     }
 
     dispose(): void {

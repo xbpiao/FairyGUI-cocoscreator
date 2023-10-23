@@ -1799,7 +1799,7 @@ declare module 'fairygui-cc/UIConfig' {
         static frameTimeForAsyncUIConstruction: number;
         static linkUnderline: boolean;
         static defaultUILayer: number;
-        static defaultDelayLoad: boolean;
+        static enableDelayLoad: boolean;
         static autoReleaseAssets: boolean;
     }
     export function registerFont(name: string, font: Font | string, bundle?: AssetManager.Bundle): void;

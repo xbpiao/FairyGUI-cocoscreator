@@ -162,7 +162,7 @@ export class UIPackage {
             return;
         }
 
-        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.enableDelayLoad;
 
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err: Error | null, asset: Asset) => {

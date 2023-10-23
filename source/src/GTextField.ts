@@ -76,6 +76,16 @@ export class GTextField extends GObject {
         return this._font;
     }
 
+    private init(fontItem: PackageItem, font: any) {
+        this._fontPackageItem = fontItem;
+        if(fontItem) {
+            fontItem.addRef();
+        }
+        this._realFont = font;
+        this.updateFont();
+        this.updateFontSize();
+    }
+
     public set font(value: string | null) {
         if (this._font != value || !value) {
             this._dirtyVersion++;
@@ -91,7 +101,11 @@ export class GTextField extends GObject {
             if (newFont.startsWith("ui://")) {
                 pi = UIPackage.getItemByURL(newFont);
                 if (pi) {
-                    newFont = pi.owner.getItemAssetAsync2(pi);
+                    if(!UIConfig.enableDelayLoad || pi.__loaded && pi.decoded) {
+                        newFont = pi.owner.getItemAsset(pi);       
+                    }else{
+                        newFont = pi.owner.getItemAssetAsync2(pi);
+                    }
                 }
                 else
                     newFont = UIConfig.defaultFont;
@@ -103,16 +117,10 @@ export class GTextField extends GObject {
                         return;
                     }
                       
-                    this._fontPackageItem = pi;
-                    this._fontPackageItem.addRef();
-                    this._realFont = asset;
-                    this.updateFont();
-                    this.updateFontSize();
+                    this.init(pi!, asset);
                 })
             }else{
-                this._realFont = newFont;
-                this.updateFont();
-                this.updateFontSize();
+                this.init(pi, newFont);
             }
         }
     }

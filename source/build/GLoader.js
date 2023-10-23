@@ -194,6 +194,59 @@ export class GLoader extends GObject {
         else
             this.loadExternal();
     }
+    init(contentItem, itemURL, dirtyVersion) {
+        if (!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
+            return;
+        }
+        this._contentItem = contentItem;
+        this._contentItem.addRef();
+        if (this._autoSize)
+            this.setSize(this.sourceWidth, this.sourceHeight);
+        if (this._contentItem.type == PackageItemType.Image) {
+            if (!this._contentItem.asset) {
+                this.setErrorState();
+            }
+            else {
+                this._content.spriteFrame = this._contentItem.asset;
+                if (this._content.fillMethod == 0) {
+                    if (this._contentItem.scale9Grid)
+                        this._content.type = Sprite.Type.SLICED;
+                    else if (this._contentItem.scaleByTile)
+                        this._content.type = Sprite.Type.TILED;
+                    else
+                        this._content.type = Sprite.Type.SIMPLE;
+                }
+                else {
+                    this._content.type = Sprite.Type.FILLED;
+                }
+                this._content.__update();
+                this.updateLayout();
+            }
+        }
+        else if (this._contentItem.type == PackageItemType.MovieClip) {
+            this._content.interval = this._contentItem.interval;
+            this._content.swing = this._contentItem.swing;
+            this._content.repeatDelay = this._contentItem.repeatDelay;
+            this._content.frames = this._contentItem.frames;
+            this.updateLayout();
+        }
+        else if (this._contentItem.type == PackageItemType.Component) {
+            var obj = UIPackage.createObjectFromURL(itemURL);
+            if (!obj)
+                this.setErrorState();
+            else if (!(obj instanceof GComponent)) {
+                obj.dispose();
+                this.setErrorState();
+            }
+            else {
+                this._content2 = obj;
+                this._container.addChild(this._content2.node);
+                this.updateLayout();
+            }
+        }
+        else
+            this.setErrorState();
+    }
     loadFromPackage(itemURL) {
         this._dirtyVersion++;
         let dirtyVersion = this._dirtyVersion;
@@ -203,59 +256,14 @@ export class GLoader extends GObject {
             this.sourceWidth = contentItem.width;
             this.sourceHeight = contentItem.height;
             contentItem = contentItem.getHighResolution();
-            contentItem.loadAsync().then(() => {
-                if (!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
-                    return;
-                }
-                this._contentItem = contentItem;
-                this._contentItem.addRef();
-                if (this._autoSize)
-                    this.setSize(this.sourceWidth, this.sourceHeight);
-                if (this._contentItem.type == PackageItemType.Image) {
-                    if (!this._contentItem.asset) {
-                        this.setErrorState();
-                    }
-                    else {
-                        this._content.spriteFrame = this._contentItem.asset;
-                        if (this._content.fillMethod == 0) {
-                            if (this._contentItem.scale9Grid)
-                                this._content.type = Sprite.Type.SLICED;
-                            else if (this._contentItem.scaleByTile)
-                                this._content.type = Sprite.Type.TILED;
-                            else
-                                this._content.type = Sprite.Type.SIMPLE;
-                        }
-                        else {
-                            this._content.type = Sprite.Type.FILLED;
-                        }
-                        this._content.__update();
-                        this.updateLayout();
-                    }
-                }
-                else if (this._contentItem.type == PackageItemType.MovieClip) {
-                    this._content.interval = this._contentItem.interval;
-                    this._content.swing = this._contentItem.swing;
-                    this._content.repeatDelay = this._contentItem.repeatDelay;
-                    this._content.frames = this._contentItem.frames;
-                    this.updateLayout();
-                }
-                else if (this._contentItem.type == PackageItemType.Component) {
-                    var obj = UIPackage.createObjectFromURL(itemURL);
-                    if (!obj)
-                        this.setErrorState();
-                    else if (!(obj instanceof GComponent)) {
-                        obj.dispose();
-                        this.setErrorState();
-                    }
-                    else {
-                        this._content2 = obj;
-                        this._container.addChild(this._content2.node);
-                        this.updateLayout();
-                    }
-                }
-                else
-                    this.setErrorState();
-            });
+            if (!UIConfig.enableDelayLoad || contentItem.__loaded && contentItem.decoded) {
+                this.init(contentItem, itemURL, dirtyVersion);
+            }
+            else {
+                contentItem.loadAsync().then(() => {
+                    this.init(contentItem, itemURL, dirtyVersion);
+                });
+            }
         }
         else
             this.setErrorState();

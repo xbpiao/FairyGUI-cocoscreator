@@ -2481,7 +2481,7 @@ UIConfig.frameTimeForAsyncUIConstruction = 0.002;
 UIConfig.linkUnderline = true;
 //Default group name of UI node.<br/>
 UIConfig.defaultUILayer = Layers.Enum.UI_2D;
-UIConfig.defaultDelayLoad = true;
+UIConfig.enableDelayLoad = true;
 // 
 UIConfig.autoReleaseAssets = false;
 let _fontRegistry = {};
@@ -4186,6 +4186,15 @@ class GImage extends GObject {
     set fillAmount(value) {
         this._content.fillAmount = value;
     }
+    init(contentItem) {
+        if (!isValid(this.node)) {
+            return;
+        }
+        this._content.spriteFrame = contentItem.asset;
+        this._content.__update();
+        this._contentPackageItem = contentItem;
+        this._contentPackageItem.addRef();
+    }
     constructFromResource() {
         var contentItem = this.packageItem.getBranch();
         this.sourceWidth = contentItem.width;
@@ -4198,15 +4207,14 @@ class GImage extends GObject {
             this._content.type = Sprite.Type.SLICED;
         else if (contentItem.scaleByTile)
             this._content.type = Sprite.Type.TILED;
-        contentItem.loadAsync().then(() => {
-            if (!isValid(this.node)) {
-                return;
-            }
-            this._content.spriteFrame = contentItem.asset;
-            this._content.__update();
-            this._contentPackageItem = contentItem;
-            this._contentPackageItem.addRef();
-        });
+        if (!UIConfig.enableDelayLoad || contentItem.__loaded && contentItem.decoded) {
+            this.init(contentItem);
+        }
+        else {
+            contentItem.loadAsync().then(() => {
+                this.init(contentItem);
+            });
+        }
     }
     dispose() {
         if (this._contentPackageItem) {
@@ -4577,6 +4585,18 @@ class GMovieClip extends GObject {
                 break;
         }
     }
+    init(contentItem) {
+        if (!isValid(this.node)) {
+            return;
+        }
+        this._content.interval = contentItem.interval;
+        this._content.swing = contentItem.swing;
+        this._content.repeatDelay = contentItem.repeatDelay;
+        this._content.frames = contentItem.frames;
+        this._content.smoothing = contentItem.smoothing;
+        this._contentPackageItem = contentItem;
+        this._contentPackageItem.addRef();
+    }
     constructFromResource() {
         var contentItem = this.packageItem.getBranch();
         this.sourceWidth = contentItem.width;
@@ -4585,18 +4605,14 @@ class GMovieClip extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.loadAsync().then(() => {
-            if (!isValid(this.node)) {
-                return;
-            }
-            this._content.interval = contentItem.interval;
-            this._content.swing = contentItem.swing;
-            this._content.repeatDelay = contentItem.repeatDelay;
-            this._content.frames = contentItem.frames;
-            this._content.smoothing = contentItem.smoothing;
-            this._contentPackageItem = contentItem;
-            this._contentPackageItem.addRef();
-        });
+        if (!UIConfig.enableDelayLoad || contentItem.__loaded && contentItem.decoded) {
+            this.init(contentItem);
+        }
+        else {
+            contentItem.loadAsync().then(() => {
+                this.init(contentItem);
+            });
+        }
     }
     onDestroy() {
         if (this._contentPackageItem) {
@@ -5281,7 +5297,7 @@ class UIPackage {
             onComplete === null || onComplete === void 0 ? void 0 : onComplete.call(this, null, p);
             return;
         }
-        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.enableDelayLoad;
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err, asset) => {
             if (err) {
@@ -6345,6 +6361,15 @@ class GTextField extends GObject {
     get font() {
         return this._font;
     }
+    init(fontItem, font) {
+        this._fontPackageItem = fontItem;
+        if (fontItem) {
+            fontItem.addRef();
+        }
+        this._realFont = font;
+        this.updateFont();
+        this.updateFontSize();
+    }
     set font(value) {
         if (this._font != value || !value) {
             this._dirtyVersion++;
@@ -6356,7 +6381,12 @@ class GTextField extends GObject {
             if (newFont.startsWith("ui://")) {
                 pi = UIPackage.getItemByURL(newFont);
                 if (pi) {
-                    newFont = pi.owner.getItemAssetAsync2(pi);
+                    if (!UIConfig.enableDelayLoad || pi.__loaded && pi.decoded) {
+                        newFont = pi.owner.getItemAsset(pi);
+                    }
+                    else {
+                        newFont = pi.owner.getItemAssetAsync2(pi);
+                    }
                 }
                 else
                     newFont = UIConfig.defaultFont;
@@ -6366,17 +6396,11 @@ class GTextField extends GObject {
                     if (!isValid(this._node) || this._dirtyVersion != dirtyVersion) {
                         return;
                     }
-                    this._fontPackageItem = pi;
-                    this._fontPackageItem.addRef();
-                    this._realFont = asset;
-                    this.updateFont();
-                    this.updateFontSize();
+                    this.init(pi, asset);
                 });
             }
             else {
-                this._realFont = newFont;
-                this.updateFont();
-                this.updateFontSize();
+                this.init(pi, newFont);
             }
         }
     }
@@ -12675,6 +12699,59 @@ class GLoader extends GObject {
         else
             this.loadExternal();
     }
+    init(contentItem, itemURL, dirtyVersion) {
+        if (!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
+            return;
+        }
+        this._contentItem = contentItem;
+        this._contentItem.addRef();
+        if (this._autoSize)
+            this.setSize(this.sourceWidth, this.sourceHeight);
+        if (this._contentItem.type == PackageItemType.Image) {
+            if (!this._contentItem.asset) {
+                this.setErrorState();
+            }
+            else {
+                this._content.spriteFrame = this._contentItem.asset;
+                if (this._content.fillMethod == 0) {
+                    if (this._contentItem.scale9Grid)
+                        this._content.type = Sprite.Type.SLICED;
+                    else if (this._contentItem.scaleByTile)
+                        this._content.type = Sprite.Type.TILED;
+                    else
+                        this._content.type = Sprite.Type.SIMPLE;
+                }
+                else {
+                    this._content.type = Sprite.Type.FILLED;
+                }
+                this._content.__update();
+                this.updateLayout();
+            }
+        }
+        else if (this._contentItem.type == PackageItemType.MovieClip) {
+            this._content.interval = this._contentItem.interval;
+            this._content.swing = this._contentItem.swing;
+            this._content.repeatDelay = this._contentItem.repeatDelay;
+            this._content.frames = this._contentItem.frames;
+            this.updateLayout();
+        }
+        else if (this._contentItem.type == PackageItemType.Component) {
+            var obj = UIPackage.createObjectFromURL(itemURL);
+            if (!obj)
+                this.setErrorState();
+            else if (!(obj instanceof GComponent)) {
+                obj.dispose();
+                this.setErrorState();
+            }
+            else {
+                this._content2 = obj;
+                this._container.addChild(this._content2.node);
+                this.updateLayout();
+            }
+        }
+        else
+            this.setErrorState();
+    }
     loadFromPackage(itemURL) {
         this._dirtyVersion++;
         let dirtyVersion = this._dirtyVersion;
@@ -12684,59 +12761,14 @@ class GLoader extends GObject {
             this.sourceWidth = contentItem.width;
             this.sourceHeight = contentItem.height;
             contentItem = contentItem.getHighResolution();
-            contentItem.loadAsync().then(() => {
-                if (!isValid(this.node) || this._dirtyVersion != dirtyVersion) {
-                    return;
-                }
-                this._contentItem = contentItem;
-                this._contentItem.addRef();
-                if (this._autoSize)
-                    this.setSize(this.sourceWidth, this.sourceHeight);
-                if (this._contentItem.type == PackageItemType.Image) {
-                    if (!this._contentItem.asset) {
-                        this.setErrorState();
-                    }
-                    else {
-                        this._content.spriteFrame = this._contentItem.asset;
-                        if (this._content.fillMethod == 0) {
-                            if (this._contentItem.scale9Grid)
-                                this._content.type = Sprite.Type.SLICED;
-                            else if (this._contentItem.scaleByTile)
-                                this._content.type = Sprite.Type.TILED;
-                            else
-                                this._content.type = Sprite.Type.SIMPLE;
-                        }
-                        else {
-                            this._content.type = Sprite.Type.FILLED;
-                        }
-                        this._content.__update();
-                        this.updateLayout();
-                    }
-                }
-                else if (this._contentItem.type == PackageItemType.MovieClip) {
-                    this._content.interval = this._contentItem.interval;
-                    this._content.swing = this._contentItem.swing;
-                    this._content.repeatDelay = this._contentItem.repeatDelay;
-                    this._content.frames = this._contentItem.frames;
-                    this.updateLayout();
-                }
-                else if (this._contentItem.type == PackageItemType.Component) {
-                    var obj = UIPackage.createObjectFromURL(itemURL);
-                    if (!obj)
-                        this.setErrorState();
-                    else if (!(obj instanceof GComponent)) {
-                        obj.dispose();
-                        this.setErrorState();
-                    }
-                    else {
-                        this._content2 = obj;
-                        this._container.addChild(this._content2.node);
-                        this.updateLayout();
-                    }
-                }
-                else
-                    this.setErrorState();
-            });
+            if (!UIConfig.enableDelayLoad || contentItem.__loaded && contentItem.decoded) {
+                this.init(contentItem, itemURL, dirtyVersion);
+            }
+            else {
+                contentItem.loadAsync().then(() => {
+                    this.init(contentItem, itemURL, dirtyVersion);
+                });
+            }
         }
         else
             this.setErrorState();

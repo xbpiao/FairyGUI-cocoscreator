@@ -30,6 +30,7 @@ export declare class GTextField extends GObject {
     set text(value: string | null);
     get text(): string | null;
     get font(): string | null;
+    private init;
     set font(value: string | null);
     dispose(): void;
     get fontSize(): number;

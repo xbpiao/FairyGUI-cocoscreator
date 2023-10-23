@@ -65,7 +65,7 @@ export class UIConfig {
     //Default group name of UI node.<br/>
     public static defaultUILayer: number = Layers.Enum.UI_2D;
 
-    public static defaultDelayLoad: boolean = true;
+    public static enableDelayLoad: boolean = true;
     // 
     public static autoReleaseAssets: boolean = false;
 }

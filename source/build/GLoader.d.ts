@@ -63,6 +63,7 @@ export declare class GLoader extends GObject {
     get texture(): SpriteFrame;
     set texture(value: SpriteFrame);
     protected loadContent(): void;
+    private init;
     protected loadFromPackage(itemURL: string): void;
     protected loadExternal(): void;
     protected freeExternal(texture: SpriteFrame): void;

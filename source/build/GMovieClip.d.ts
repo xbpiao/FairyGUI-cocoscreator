@@ -22,6 +22,7 @@ export declare class GMovieClip extends GObject {
     protected handleSizeChanged(): void;
     getProp(index: number): any;
     setProp(index: number, value: any): void;
+    private init;
     constructFromResource(): void;
     protected onDestroy(): void;
     setup_beforeAdd(buffer: ByteBuffer, beginPos: number): void;

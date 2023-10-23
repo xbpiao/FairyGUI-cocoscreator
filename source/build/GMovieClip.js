@@ -2,6 +2,7 @@ import { Sprite, isValid } from "cc";
 import { MovieClip } from "./display/MovieClip";
 import { ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
+import { UIConfig } from "./UIConfig";
 export class GMovieClip extends GObject {
     constructor() {
         super();
@@ -100,6 +101,18 @@ export class GMovieClip extends GObject {
                 break;
         }
     }
+    init(contentItem) {
+        if (!isValid(this.node)) {
+            return;
+        }
+        this._content.interval = contentItem.interval;
+        this._content.swing = contentItem.swing;
+        this._content.repeatDelay = contentItem.repeatDelay;
+        this._content.frames = contentItem.frames;
+        this._content.smoothing = contentItem.smoothing;
+        this._contentPackageItem = contentItem;
+        this._contentPackageItem.addRef();
+    }
     constructFromResource() {
         var contentItem = this.packageItem.getBranch();
         this.sourceWidth = contentItem.width;
@@ -108,18 +121,14 @@ export class GMovieClip extends GObject {
         this.initHeight = this.sourceHeight;
         this.setSize(this.sourceWidth, this.sourceHeight);
         contentItem = contentItem.getHighResolution();
-        contentItem.loadAsync().then(() => {
-            if (!isValid(this.node)) {
-                return;
-            }
-            this._content.interval = contentItem.interval;
-            this._content.swing = contentItem.swing;
-            this._content.repeatDelay = contentItem.repeatDelay;
-            this._content.frames = contentItem.frames;
-            this._content.smoothing = contentItem.smoothing;
-            this._contentPackageItem = contentItem;
-            this._contentPackageItem.addRef();
-        });
+        if (!UIConfig.enableDelayLoad || contentItem.__loaded && contentItem.decoded) {
+            this.init(contentItem);
+        }
+        else {
+            contentItem.loadAsync().then(() => {
+                this.init(contentItem);
+            });
+        }
     }
     onDestroy() {
         if (this._contentPackageItem) {

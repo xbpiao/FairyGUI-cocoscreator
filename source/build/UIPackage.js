@@ -103,7 +103,7 @@ export class UIPackage {
             onComplete === null || onComplete === void 0 ? void 0 : onComplete.call(this, null, p);
             return;
         }
-        delayLoad = delayLoad != null ? delayLoad : UIConfig.defaultDelayLoad;
+        delayLoad = delayLoad != null ? delayLoad : UIConfig.enableDelayLoad;
         bundle = bundle || resources;
         bundle.load(path, Asset, onProgress, (err, asset) => {
             if (err) {

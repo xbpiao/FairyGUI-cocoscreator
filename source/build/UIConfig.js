@@ -33,7 +33,7 @@ UIConfig.frameTimeForAsyncUIConstruction = 0.002;
 UIConfig.linkUnderline = true;
 //Default group name of UI node.<br/>
 UIConfig.defaultUILayer = Layers.Enum.UI_2D;
-UIConfig.defaultDelayLoad = true;
+UIConfig.enableDelayLoad = true;
 // 
 UIConfig.autoReleaseAssets = false;
 let _fontRegistry = {};
