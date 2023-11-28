@@ -11,8 +11,9 @@
             "internalConsoleOptions": "openOnSessionStart",
             "sourceMaps": true,
             // 可以映射一些路径方便查看堆栈，但无法断点(还是通过建目录link断点方便)
+            // ln -s /Applications/Cocos/Creator/3.8.1/CocosCreator.app/Contents/Resources/resources/3d ./scripting
             "pathMapping": {
-            //     "/scripting/engine": "D:/secure/dev/cocos/editors/Creator/3.8.0/resources/resources/3d/engine",
+            //     "/scripting/engine": "/Applications/CocosCreator/Creator/3.8.0/CocosCreator.app/Contents/Resources/resources/3d/engine",
                 "/scripting/systemjs": "${workspaceFolder}/temp/programming/preview/systemjs"
             },
         }

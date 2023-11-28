@@ -1,9 +1,10 @@
 {
-  "__version__": "1.0.5",
+  "__version__": "1.0.6",
   "script": {
     "useDefineForClassFields": false,
     "allowDeclareFields": false,
-    "importMap": "project://import-map.json"
+    "importMap": "project://import-map.json",
+    "preserveSymlinks": true
   },
   "general": {
     "designResolution": {
