@@ -1,5 +1,6 @@
 node_modules
 .DS_Store
 demo/UIProject/.objs
+demo/scripting
 source/build
 source/dist
