@@ -37,6 +37,7 @@ export class GLoader extends GObject {
     private _updatingLayout: boolean;
     private _dirtyVersion: number = 0;
     private _externalAssets: { [path: string]: Asset[]} = {};
+    private _assetBundle: string;
 
     private static _errorSignPool: GObjectPool = new GObjectPool();
 
@@ -65,7 +66,7 @@ export class GLoader extends GObject {
         this._content.setPlaySettings();
     }
 
-    public dispose(): void {
+    public dispose(): void {       
         if (this._content2) {
             this._content2.dispose();
             this._content2 = null;
@@ -86,6 +87,26 @@ export class GLoader extends GObject {
         this._url = value;
         this.loadContent();
         this.updateGear(7);
+    }
+    /**
+     * 设置图片
+     * @param url 
+     * @param bundleStr 远程包名称
+     */
+    public setUrlWithBundle(url: string, bundleStr: string = ''): void {
+        this.bundle = bundleStr
+        this.url = url;
+    }
+
+    public set bundle(val: string) {
+        this._assetBundle = val;
+    }
+
+    public get bundle(): string {
+        if (this._assetBundle) {
+            return this._assetBundle;
+        }
+        return UIConfig.loaderAssetsBundleName;
     }
 
     public get icon(): string | null {
@@ -408,7 +429,11 @@ export class GLoader extends GObject {
             if(isRemoteUrl && UIConfig.autoReleaseAssets) {
                 this.addExternalAssetRef(this._url, assets);
             }
+            else {
+                console.warn("GLoader:cant load", this.url);
+            }
         };
+
         if (this.url.startsWith("http://")
             || this.url.startsWith("https://")
             || this.url.startsWith('/')) {
@@ -418,6 +443,19 @@ export class GLoader extends GObject {
                 assetManager.loadRemote(this.url, callback);
             }
             isRemoteUrl = true;
+        } else if (this._url.startsWith('data:image/')) {
+            const img = new Image();
+            img.src = this._url;
+            img.onload = () => {
+                const tex = new Texture2D();
+                tex.reset({
+                    width: img.width,
+                    height: img.height,
+                });
+                tex.uploadData(img, 0, 0);
+                tex.loaded = true;
+                callback(null, tex);
+            }
         } else {
             let pkg = resources;
             let assetUrl = this.url;
@@ -431,8 +469,14 @@ export class GLoader extends GObject {
                     console.error(`bundle '${pkgName}' not found`);
                     return;
                 }
+                pkg.load(assetUrl, Asset, callback);
+            } else {
+                 //如果有设置远程包 从远程包加载
+                if (this.bundle && assetManager.bundles.has(this.bundle)) {
+                    pkg = assetManager.getBundle(this.bundle);
+                }
+                pkg.load(this._url + "/spriteFrame", Asset, callback);
             }
-            pkg.load(assetUrl, Asset, callback);
         }
     }
 
@@ -482,8 +526,12 @@ export class GLoader extends GObject {
 
     protected onExternalLoadSuccess(texture: SpriteFrame): void {
         this._content.spriteFrame = texture;
-        this.sourceWidth = texture.getRect().width;
-        this.sourceHeight = texture.getRect().height;
+        this._content.type = Sprite.Type.SIMPLE;
+        //如果裁剪掉透明像素会导致 有空白边的图片 跟编辑器不一致。
+        // this.sourceWidth = texture.getRect().width;
+        // this.sourceHeight = texture.getRect().height;
+        this.sourceWidth = texture.originalSize.width;
+        this.sourceHeight = texture.originalSize.height;
         if (this._autoSize)
             this.setSize(this.sourceWidth, this.sourceHeight);
         this.updateFillType();
