@@ -34,10 +34,10 @@
     }
   },
   "camera-infos": {
-    "f46876e4-e81b-4931-b493-6d367be385e7": {
+    "7c3e7fab-7b1e-4865-ba84-3cf81b48b9fb": {
       "position": {
-        "x": 0,
-        "y": 0,
+        "x": 655,
+        "y": 348,
         "z": 5000
       },
       "rotation": {
@@ -52,112 +52,12 @@
         "z": 0
       },
       "contentRect": {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0
+        "x": -3.1704839873981316,
+        "y": -175.52186588921282,
+        "width": 1291.1781609195402,
+        "height": 686
       },
-      "scale": 1
-    },
-    "f0512d7a-e4f6-4209-8dc0-ed1de7149c85": {
-      "position": {
-        "x": 0,
-        "y": 0,
-        "z": 5600.35779378003
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0,
-        "w": 1
-      },
-      "viewCenter": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "contentRect": {
-        "x": 155.29005726318852,
-        "y": -58.44205602650457,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 0.7169776240079136
-    },
-    "ccc3a755-7d3d-4304-aa3b-ca4792d79d9f": {
-      "position": {
-        "x": 0,
-        "y": 0,
-        "z": 134.74451460496584
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0,
-        "w": 1
-      },
-      "viewCenter": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "contentRect": {
-        "x": 155.29005726318852,
-        "y": -58.44205602650457,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 0.7169776240079136
-    },
-    "cfc53c4e-7956-482b-aebc-3fb1dcd36eef": {
-      "position": {
-        "x": 0,
-        "y": 0.956,
-        "z": 16.656143720459838
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0,
-        "w": 1
-      },
-      "viewCenter": {
-        "x": 0,
-        "y": 0.956,
-        "z": 1.402
-      },
-      "contentRect": {
-        "x": 155.29005726318852,
-        "y": -58.44205602650457,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 0.7169776240079136
-    },
-    "ecb26ae3-1542-423f-939b-f4a0ffce9f0b": {
-      "position": {
-        "x": 155.2900572631885,
-        "y": -58.44205602650459,
-        "z": 5000
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0,
-        "w": 1
-      },
-      "viewCenter": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "contentRect": {
-        "x": 155.29005726318852,
-        "y": -58.44205602650457,
-        "width": 0,
-        "height": 0
-      },
-      "scale": 0.7169776240079136
+      "scale": 0.985632183908046
     },
     "273f3851-48de-424c-ae15-3c5828f29c13": {
       "position": {
@@ -177,18 +77,18 @@
         "z": 0
       },
       "contentRect": {
-        "x": 155.29005726318852,
-        "y": -58.44205602650457,
+        "x": -645.5890804597701,
+        "y": -343,
         "width": 0,
         "height": 0
       },
-      "scale": 0.7169776240079136
+      "scale": 1
     },
-    "7c3e7fab-7b1e-4865-ba84-3cf81b48b9fb": {
+    "f46876e4-e81b-4931-b493-6d367be385e7": {
       "position": {
-        "x": 0,
-        "y": 0,
-        "z": 7.846274494952013
+        "x": 392.55333333333334,
+        "y": 222.24666666666667,
+        "z": 5000
       },
       "rotation": {
         "x": 0,
@@ -202,49 +102,62 @@
         "z": 0
       },
       "contentRect": {
-        "x": 155.29005726318852,
-        "y": -58.44205602650457,
-        "width": 0,
-        "height": 0
+        "x": 556.5,
+        "y": 313.5,
+        "width": 1095.248803827751,
+        "height": 617
       },
-      "scale": 0.7169776240079136
+      "scale": 0.9840510366826156
     },
-    "d3525d39-a896-463d-a6d2-0b077a1a9682": {
+    "ecb26ae3-1542-423f-939b-f4a0ffce9f0b": {
       "position": {
-        "x": 0.1107843232138187,
-        "y": 0.2668864689988868,
-        "z": 6.879292774986474
+        "x": 613.5,
+        "y": 367.5,
+        "z": 5000
       },
       "rotation": {
-        "x": -0.014393935088782407,
-        "y": 0.026993371935200704,
-        "z": 0.0003887234211703301,
-        "w": 0.9995319011408575
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
       },
       "viewCenter": {
-        "x": -0.2579455034810616,
-        "y": 0.07008090594466315,
-        "z": 0.05746207188890651
+        "x": 0,
+        "y": 0,
+        "z": 0
       },
       "contentRect": {
         "x": 0,
         "y": 0,
-        "width": 785,
-        "height": 529
+        "width": 1210.3061224489795,
+        "height": 725
       },
-      "scale": 1
+      "scale": 0.9863945578231292
     }
   },
   "camera-uuids": [
-    "f46876e4-e81b-4931-b493-6d367be385e7",
-    "f0512d7a-e4f6-4209-8dc0-ed1de7149c85",
-    "ccc3a755-7d3d-4304-aa3b-ca4792d79d9f",
-    "cfc53c4e-7956-482b-aebc-3fb1dcd36eef",
-    "ecb26ae3-1542-423f-939b-f4a0ffce9f0b",
-    "273f3851-48de-424c-ae15-3c5828f29c13",
     "7c3e7fab-7b1e-4865-ba84-3cf81b48b9fb",
-    "d3525d39-a896-463d-a6d2-0b077a1a9682"
+    "273f3851-48de-424c-ae15-3c5828f29c13",
+    "f46876e4-e81b-4931-b493-6d367be385e7",
+    "ecb26ae3-1542-423f-939b-f4a0ffce9f0b"
   ],
+  "builder": {},
+  "snap-configs": {
+    "position": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    },
+    "rotation": 1,
+    "scale": 1,
+    "isPositionSnapEnabled": false,
+    "isRotationSnapEnabled": false,
+    "isScaleSnapEnabled": false
+  },
+  "rect-snap-configs": {
+    "enableSnapping": true,
+    "snapThreshold": 4
+  },
   "camera": {
     "color": [
       48,
@@ -266,24 +179,18 @@
     "aperture": 19,
     "shutter": 7
   },
-  "builder": {},
-  "": {
-    "sculpt_brush_rotate": 0
+  "scene_view": {
+    "isSceneLightOn": true,
+    "output_device": "__default_design__"
   },
-  "snap-configs": {
-    "position": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-    },
-    "rotation": 1,
-    "scale": 1,
-    "isPositionSnapEnabled": false,
-    "isRotationSnapEnabled": false,
-    "isScaleSnapEnabled": false
-  },
-  "rect-snap-configs": {
-    "enableSnapping": true,
-    "snapThreshold": 4
+  "game-view": {
+    "scaleValue": 98,
+    "sliderValue": 49,
+    "devicesInfo": {
+      "name": "i18n:scene.game_view.design_resolution",
+      "type": "design",
+      "width": 1136,
+      "height": 640
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { director, Color, view, Vec2, AudioClip, View, AudioSourceComponent, Event, Node, game } from "cc";
+import { director, Color, Vec2, AudioClip, View, AudioSourceComponent, UITransform, game} from "cc";
 import { EDITOR } from "cc/env";
 import { InputProcessor } from "./event/InputProcessor";
 import { RelationType, PopupDirection } from "./FieldTypes";
@@ -216,9 +216,9 @@ export class GRoot extends GComponent {
         var sizeW: number = 0, sizeH: number = 0;
         if (target) {
             pos = target.localToGlobal();
-            GRoot.inst.globalToLocal(pos.x, pos.y, pos);
+            this.globalToLocal(pos.x, pos.y, pos);
             let pos2 = target.localToGlobal(target.width, target.height);
-            GRoot.inst.globalToLocal(pos2.x, pos2.y, pos2);
+            this.globalToLocal(pos2.x, pos2.y, pos2);
             sizeW = pos2.x - pos.x;
             sizeH = pos2.y - pos.y;
         }
@@ -447,7 +447,7 @@ export class GRoot extends GComponent {
         updateScaler();
 
         this.setSize(UIContentScaler.rootSize.width, UIContentScaler.rootSize.height);
-        let anchorPoint = this.node.getParent()._uiProps.uiTransformComp.anchorPoint;
+        let anchorPoint = this.node.getParent().getComponent(UITransform).anchorPoint;
         this.node.setPosition(-this._width * anchorPoint.x, this._height * (1 - anchorPoint.y));
     }
 

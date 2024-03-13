@@ -20,6 +20,7 @@ export class ScrollPane extends Component {
     private _owner: GComponent;
     private _container: Node;
     private _maskContainer: Node;
+    private _maskContainerUITrans: UITransform;
 
     private _scrollType: number;
     private _scrollStep: number;
@@ -87,7 +88,8 @@ export class ScrollPane extends Component {
 
         this._maskContainer = new Node("ScrollPane");
         this._maskContainer.layer = UIConfig.defaultUILayer;
-        this._maskContainer.addComponent(UITransform).setAnchorPoint(0, 1);
+        this._maskContainerUITrans = this._maskContainer.addComponent(UITransform);
+        this._maskContainerUITrans.setAnchorPoint(0, 1);
         this._maskContainer.parent = o.node;
 
         this._container = o._container;
@@ -170,7 +172,7 @@ export class ScrollPane extends Component {
                 if (res) {
                     this._vtScrollBar = <GScrollBar><any>(UIPackage.createObjectFromURL(res));
                     if (!this._vtScrollBar)
-                        throw "cannot create scrollbar from " + res;
+                        throw new Error("cannot create scrollbar from " + res);
                     this._vtScrollBar.setScrollPane(this, true);
                     this._vtScrollBar.node.parent = o.node;
                 }
@@ -180,7 +182,7 @@ export class ScrollPane extends Component {
                 if (res) {
                     this._hzScrollBar = <GScrollBar><any>(UIPackage.createObjectFromURL(res));
                     if (!this._hzScrollBar)
-                        throw "cannot create scrollbar from " + res;
+                        throw new Error("cannot create scrollbar from " + res);
                     this._hzScrollBar.setScrollPane(this, false);
                     this._hzScrollBar.node.parent = o.node;
                 }
@@ -202,7 +204,7 @@ export class ScrollPane extends Component {
         if (headerRes) {
             this._header = <GComponent>(UIPackage.createObjectFromURL(headerRes));
             if (this._header == null)
-                throw "cannot create scrollPane header from " + headerRes;
+                throw new Error("cannot create scrollPane header from " + headerRes);
             else
                 this._maskContainer.insertChild(this._header.node, 0);
         }
@@ -210,7 +212,7 @@ export class ScrollPane extends Component {
         if (footerRes) {
             this._footer = <GComponent><any>(UIPackage.createObjectFromURL(footerRes));
             if (this._footer == null)
-                throw "cannot create scrollPane footer from " + footerRes;
+                throw new Error("cannot create scrollPane footer from " + footerRes);
             else
                 this._maskContainer.insertChild(this._footer.node, 0);
         }
@@ -256,11 +258,7 @@ export class ScrollPane extends Component {
                 return target;
         }
 
-        if (pt.x >= this._owner.margin.left && pt.y >= this._owner.margin.top
-            && pt.x < this._owner.margin.left + this._viewSize.x && pt.y < this._owner.margin.top + this._viewSize.y)
-            return this._owner;
-        else
-            return null;
+        return this._owner;
     }
 
     public get owner(): GComponent {
@@ -728,10 +726,10 @@ export class ScrollPane extends Component {
         const o = this._owner;
 
         if (this._dontClipMargin)
-            this._maskContainer._uiProps.uiTransformComp.setAnchorPoint((o.margin.left + o._alignOffset.x) / o.width,
+            this._maskContainerUITrans.setAnchorPoint((o.margin.left + o._alignOffset.x) / o.width,
                 1 - (o.margin.top + o._alignOffset.y) / o.height);
         else
-            this._maskContainer._uiProps.uiTransformComp.setAnchorPoint(o._alignOffset.x / this._viewSize.x, 1 - o._alignOffset.y / this._viewSize.y);
+            this._maskContainerUITrans.setAnchorPoint(o._alignOffset.x / this._viewSize.x, 1 - o._alignOffset.y / this._viewSize.y);
 
         if (o._customMask)
             this._maskContainer.setPosition(mx + o._alignOffset.x, -o._alignOffset.y);
@@ -888,7 +886,7 @@ export class ScrollPane extends Component {
             maskWidth += (this._owner.margin.left + this._owner.margin.right);
             maskHeight += (this._owner.margin.top + this._owner.margin.bottom);
         }
-        this._maskContainer._uiProps.uiTransformComp.setContentSize(maskWidth, maskHeight);
+        this._maskContainerUITrans.setContentSize(maskWidth, maskHeight);
 
         if (this._vtScrollBar)
             this._vtScrollBar.handlePositionChanged();
@@ -951,7 +949,7 @@ export class ScrollPane extends Component {
             this._aniFlag = -1;
 
         this._needRefresh = true;
-        if (!director.getScheduler().isScheduled(this.refresh, this))
+        if (!director.getScheduler().isScheduled(this.refresh, <any>this))
             this.scheduleOnce(this.refresh);
     }
 

@@ -3,13 +3,13 @@
   "script": {
     "useDefineForClassFields": false,
     "allowDeclareFields": false,
-    "importMap": "project://import-map.json",
     "preserveSymlinks": true
   },
   "general": {
     "designResolution": {
       "fitHeight": true,
-      "width": 1136
+      "width": 1136,
+      "height": 640
     }
   },
   "fbx": {

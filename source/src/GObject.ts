@@ -1,4 +1,4 @@
-import { Vec2, Rect, Component, director, Node, UITransform, UIOpacity, Vec3, Constructor } from "cc";
+import { Vec2, Rect, Component, director, Node, UITransform, UIOpacity, Vec3 } from "cc";
 import { Controller } from "./Controller";
 import { BlendMode, BlendModeUtils } from "./display/BlendMode";
 import { Event as FUIEvent } from "./event/Event";
@@ -113,7 +113,7 @@ export class GObject {
 
     public set name(value: string) {
         this._name = value;
-        this._node.name = value;
+        this._node.name = value || "";
     }
 
     public get x(): number {
@@ -1193,7 +1193,7 @@ export class GObjectPartner extends Component {
     public _emitDisplayEvents?: boolean;
 
     public callLater(callback: any, delay?: number): void {
-        if (!director.getScheduler().isScheduled(callback, this))
+        if (!director.getScheduler().isScheduled(callback, <any>this))
             this.scheduleOnce(callback, delay);
     }
 

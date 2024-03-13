@@ -1,4 +1,4 @@
-import { BitmapFont, Color, Font, HorizontalTextAlignment, InstanceMaterialType, Label, LabelOutline, LabelShadow, Node, SystemEventType, Vec2, VerticalTextAlignment, isValid } from "cc";
+import { BitmapFont, Color, Font, HorizontalTextAlignment, Label, Node, Vec2, VerticalTextAlignment } from "cc";
 import { Event as FUIEvent } from "./event/Event";
 import { AutoSizeType, ObjectPropID } from "./FieldTypes";
 import { GObject } from "./GObject";
@@ -26,12 +26,6 @@ export class GTextField extends GObject {
     protected _autoSize: AutoSizeType;
     protected _updatingSize: boolean;
     protected _sizeDirty: boolean;
-    protected _outline?: LabelOutline;
-    protected _shadow?: LabelShadow;
-    protected _fontPackageItem?: PackageItem;
-    private _dirtyVersion: number = 0;
-
-    private _onReadyCallbacks: Array<Function> = [];
 
     public constructor() {
         super();
@@ -56,7 +50,6 @@ export class GTextField extends GObject {
     protected createRenderer() {
         this._label = this._node.addComponent(Label);
         this._label.string = "";
-        // this._label.getComponent(UITransform).setAnchorPoint(0, 1);
         this.autoSize = AutoSizeType.Both;
     }
 
@@ -78,66 +71,23 @@ export class GTextField extends GObject {
         return this._font;
     }
 
-    private init(fontItem: PackageItem, font: any) {
-        this._fontPackageItem = fontItem;
-        if(fontItem) {
-            fontItem.addRef();
-        }
-        this._realFont = font;
-        this.updateFont();
-        this.updateFontSize();
-
-        for(let i=this._onReadyCallbacks.length-1; i>=0; --i) {
-            this._onReadyCallbacks[i]();
-            this._onReadyCallbacks.splice(i, 1);
-        }
-    }
-
     public set font(value: string | null) {
         if (this._font != value || !value) {
-            this._dirtyVersion++;
-            let dirtyVersion = this._dirtyVersion;
-
             this._font = value;
 
             this.markSizeChanged();
 
             let newFont: any = value ? value : UIConfig.defaultFont;
 
-            var pi: PackageItem = null;
             if (newFont.startsWith("ui://")) {
-                pi = UIPackage.getItemByURL(newFont);
-                if (pi) {
-                    if(!UIConfig.enableDelayLoad || pi.__loaded && pi.decoded) {
-                        newFont = pi.owner.getItemAsset(pi);       
-                    }else{
-                        newFont = pi.owner.getItemAssetAsync2(pi);
-                    }
-                }
+                var pi: PackageItem = UIPackage.getItemByURL(newFont);
+                if (pi)
+                    newFont = <Font>pi.owner.getItemAsset(pi);
                 else
                     newFont = UIConfig.defaultFont;
             }
-
-            if(newFont instanceof Promise) {
-                newFont.then((asset)=>{     
-                    if(!isValid(this._node) || this._dirtyVersion != dirtyVersion){
-                        return;
-                    }
-                      
-                    this.init(pi!, asset);
-                })
-            }else{
-                this.init(pi, newFont);
-            }
-        }
-    }
-
-    public dispose(): void {
-        super.dispose();
-
-        if (this._fontPackageItem) {
-            this._fontPackageItem.decRef();
-            this._fontPackageItem = null;
+            this._realFont = newFont;
+            this.updateFont();
         }
     }
 
@@ -241,23 +191,17 @@ export class GTextField extends GObject {
     }
 
     public get stroke(): number {
-        return (this._outline && this._outline.enabled) ? this._outline.width : 0;
+        return this._label ? this._label.outlineWidth : 0;
     }
 
     public set stroke(value: number) {
-        if (value == 0) {
-            if (this._outline)
-                this._outline.enabled = false;
-        }
-        else {
-            if (!this._outline) {
-                this._outline = this._node.addComponent(LabelOutline);
-                this.updateStrokeColor();
-            }
-            else
-                this._outline.enabled = true;
-            this._outline.width = value;
-        }
+        if (!this._label)
+            return;
+
+        this._label.outlineWidth = value;
+        this._label.enableOutline = value > 0;
+        if (value > 0)
+            this.updateStrokeColor();
     }
 
     public get strokeColor(): Color {
@@ -280,18 +224,13 @@ export class GTextField extends GObject {
         if (!this._shadowOffset)
             this._shadowOffset = new Vec2();
         this._shadowOffset.set(value);
-        if (this._shadowOffset.x != 0 || this._shadowOffset.y != 0) {
-            if (!this._shadow) {
-                this._shadow = this._node.addComponent(LabelShadow);
-                this.updateShadowColor();
-            }
-            else
-                this._shadow.enabled = true;
-            this._shadow.offset.x = value.x;
-            this._shadow.offset.y = -value.y;
-        }
-        else if (this._shadow)
-            this._shadow.enabled = false;
+
+        if (!this._label)
+            return;
+        this._label.shadowOffset = new Vec2(this._shadowOffset.x, -this._shadowOffset.y);
+        this._label.enableShadow = value.x != 0 || value.y != 0;
+        if (this._label.enableShadow)
+            this.updateShadowColor();
     }
 
     public get shadowColor(): Color {
@@ -352,7 +291,7 @@ export class GTextField extends GObject {
                 break;
 
             if (pos2 == pos1 + 1) {
-                result += template.substr(pos1, 2);
+                result += template.substring(pos1, pos1 + 2);
                 pos1 = pos2 + 1;
                 continue;
             }
@@ -375,7 +314,7 @@ export class GTextField extends GObject {
         }
 
         if (pos1 < template.length)
-            result += template.substr(pos1);
+            result += template.substring(pos1);
 
         return result;
     }
@@ -408,7 +347,7 @@ export class GTextField extends GObject {
     public get textWidth(): number {
         this.ensureSizeCorrect();
 
-        return this._node._uiProps.uiTransformComp.width;
+        return this._uiTrans.width;
     }
 
     public ensureSizeCorrect(): void {
@@ -441,8 +380,6 @@ export class GTextField extends GObject {
             else
                 label.font = font;
         }
-
-        this.updateFontColor();
     }
 
     protected assignFontColor(label: any, value: Color): void {
@@ -450,23 +387,8 @@ export class GTextField extends GObject {
         if ((font instanceof BitmapFont) && !(font.fntConfig.canTint))
             value = Color.WHITE;
 
-        if(label instanceof Label) {
-            if(font instanceof BitmapFont && this._grayed) {
-                //@ts-ignore
-                label._instanceMaterialType = InstanceMaterialType.GRAYSCALE;
-                //@ts-ignore
-                label.updateMaterial();
-            }else{
-                //@ts-ignore
-                label.changeMaterialForDefine();
-                if (this._grayed) 
-                    value = toGrayedColor(value);
-            }            
-        }else{
-            if (this._grayed) 
-                value = toGrayedColor(value);
-        }
-
+        if (this._grayed)
+            value = toGrayedColor(value);
         label.color = value;
     }
 
@@ -479,30 +401,29 @@ export class GTextField extends GObject {
     }
 
     protected updateStrokeColor() {
-        if (!this._outline)
+        if (!this._label || !this._label.enableOutline)
             return;
         if (!this._strokeColor)
             this._strokeColor = new Color();
         if (this._grayed)
-            this._outline.color = toGrayedColor(this._strokeColor);
+            this._label.outlineColor = toGrayedColor(this._strokeColor);
         else
-            this._outline.color = this._strokeColor;
+            this._label.outlineColor = this._strokeColor;
     }
 
     protected updateShadowColor() {
-        if (!this._shadow)
+        if (!this._label || !this._label.enableShadow)
             return;
         if (!this._shadowColor)
             this._shadowColor = new Color();
         if (this._grayed)
-            this._shadow.color = toGrayedColor(this._shadowColor)
+            this._label.shadowColor = toGrayedColor(this._shadowColor);
         else
-            this._shadow.color = this._shadowColor;
+            this._label.shadowColor = this._shadowColor;
     }
 
     protected updateFontSize() {
         let font: any = this._label.font;
-        
         if (font instanceof BitmapFont) {
             let fntConfig = font.fntConfig;
             if (fntConfig.resizable)
@@ -518,20 +439,19 @@ export class GTextField extends GObject {
     }
 
     protected updateOverflow() {
-        const uiComp = this._node._uiProps.uiTransformComp;
         if (this._autoSize == AutoSizeType.Both)
             this._label.overflow = Label.Overflow.NONE;
         else if (this._autoSize == AutoSizeType.Height) {
             this._label.overflow = Label.Overflow.RESIZE_HEIGHT;
-            uiComp.width = this._width;
+            this._uiTrans.width = this._width;
         }
         else if (this._autoSize == AutoSizeType.Shrink) {
             this._label.overflow = Label.Overflow.SHRINK;
-            uiComp.setContentSize(this._width, this._height);
+            this._uiTrans.setContentSize(this._width, this._height);
         }
         else {
             this._label.overflow = Label.Overflow.CLAMP;
-            uiComp.setContentSize(this._width, this._height);
+            this._uiTrans.setContentSize(this._width, this._height);
         }
     }
 
@@ -555,7 +475,7 @@ export class GTextField extends GObject {
 
         if (this._autoSize == AutoSizeType.Both || this._autoSize == AutoSizeType.Height) {
             this._updatingSize = true;
-            this.setSize(this._node._uiProps.uiTransformComp.width, this._node._uiProps.uiTransformComp.height);
+            this.setSize(this._uiTrans.width, this._uiTrans.height);
             this._updatingSize = false;
         }
     }
@@ -565,10 +485,10 @@ export class GTextField extends GObject {
             return;
 
         if (this._autoSize == AutoSizeType.None || this._autoSize == AutoSizeType.Shrink) {
-            this._node._uiProps.uiTransformComp.setContentSize(this._width, this._height);
+            this._uiTrans.setContentSize(this._width, this._height);
         }
         else if (this._autoSize == AutoSizeType.Height)
-            this._node._uiProps.uiTransformComp.width = this._width;
+            this._uiTrans.width = this._width;
     }
 
     protected handleGrayedChanged(): void {
@@ -651,44 +571,6 @@ export class GTextField extends GObject {
         }
         else {
             this.text = "";
-        }
-    }
-
-    public copyFrom(tf: GTextField): void {
-        super.copyFrom(tf);
-
-        const callback = () => {
-            this.font = tf.font;
-            this.fontSize = tf.fontSize;
-            this.align = tf.align;
-            this.verticalAlign = tf.verticalAlign;
-            this.leading = tf.leading;
-            this.letterSpacing = tf.letterSpacing;
-            this.ubbEnabled = tf.ubbEnabled;
-            this.autoSize = tf.autoSize;
-            this.underline = tf.underline;
-            this.italic = tf.italic;
-            this.bold = tf.bold;
-            this.singleLine = tf.singleLine;
-            this.stroke = tf.stroke;
-            this.color = tf.color;
-            if(tf.strokeColor) {
-                this.strokeColor = tf.strokeColor;
-            }
-            if(tf.shadowColor) {
-                this.shadowColor = tf.shadowColor;
-                this.shadowOffset = tf.shadowOffset;
-            }     
-            if(tf._templateVars) {
-                this._templateVars = {};
-                Object.assign(this._templateVars, tf._templateVars);
-            }   
-        };
-
-        if(tf._realFont) {
-            callback();
-        }else{
-            this._onReadyCallbacks.push(callback);
         }
     }
 }

@@ -1,4 +1,4 @@
-import { Component, Vec2, RichText, sys, Node, Touch, Event, EventMouse, EventTouch, director, Vec3, ccenum, game } from "cc";
+import { Component, Vec2, RichText, sys, Node, EventMouse, EventTouch, director, Vec3, game } from "cc";
 import { GObject } from "../GObject";
 import { GRichTextField } from "../GRichTextField";
 import { UIContentScaler } from "../UIContentScaler";
@@ -42,7 +42,7 @@ export class InputProcessor extends Component {
         node.on(Node.EventType.MOUSE_MOVE, this.mouseMoveHandler, this);
         node.on(Node.EventType.MOUSE_UP, this.mouseUpHandler, this);
         node.on(Node.EventType.MOUSE_WHEEL, this.mouseWheelHandler, this);
-
+        // this._touchListener = (<any>this.node.eventProcessor).touchListener;
         this._touchListener = this.node.eventProcessor.touchListener;
     }
 

@@ -38,6 +38,7 @@ export class GLoader extends GObject {
     private _dirtyVersion: number = 0;
     private _externalAssets: { [path: string]: Asset[]} = {};
     private _assetBundle: string;
+    private _containerUITrans: UITransform;
 
     private static _errorSignPool: GObjectPool = new GObjectPool();
 
@@ -57,7 +58,8 @@ export class GLoader extends GObject {
 
         this._container = new Node("Image");
         this._container.layer = UIConfig.defaultUILayer;
-        this._container.addComponent(UITransform).setAnchorPoint(0, 1);
+        this._containerUITrans = this._container.addComponent(UITransform);
+        this._containerUITrans.setAnchorPoint(0, 1);
         this._node.addChild(this._container);
 
         this._content = this._container.addComponent(MovieClip);
@@ -261,9 +263,10 @@ export class GLoader extends GObject {
         this.clearContent();
 
         this._content.spriteFrame = value;
+        this._content.type = Sprite.Type.SIMPLE;
         if (value != null) {
-            this.sourceWidth = value.getRect().width;
-            this.sourceHeight = value.getRect().height;
+            this.sourceWidth = value.rect.width;
+            this.sourceHeight = value.rect.height;
         }
         else {
             this.sourceWidth = this.sourceHeight = 0;
@@ -347,13 +350,7 @@ export class GLoader extends GObject {
         }
         else
             this.setErrorState();
-
-        for(let i=this._onReadyCallbacks.length-1; i>=0; i--) {
-            this._onReadyCallbacks[i]();
-            this._onReadyCallbacks.splice(i, 1);
-        }
     }
-
     protected loadFromPackage(itemURL: string) {
         this._dirtyVersion++;
         let dirtyVersion = this._dirtyVersion;
@@ -429,11 +426,7 @@ export class GLoader extends GObject {
             if(isRemoteUrl && UIConfig.autoReleaseAssets) {
                 this.addExternalAssetRef(this._url, assets);
             }
-            else {
-                console.warn("GLoader:cant load", this.url);
-            }
         };
-
         if (this.url.startsWith("http://")
             || this.url.startsWith("https://")
             || this.url.startsWith('/')) {
@@ -443,19 +436,6 @@ export class GLoader extends GObject {
                 assetManager.loadRemote(this.url, callback);
             }
             isRemoteUrl = true;
-        } else if (this._url.startsWith('data:image/')) {
-            const img = new Image();
-            img.src = this._url;
-            img.onload = () => {
-                const tex = new Texture2D();
-                tex.reset({
-                    width: img.width,
-                    height: img.height,
-                });
-                tex.uploadData(img, 0, 0);
-                tex.loaded = true;
-                callback(null, tex);
-            }
         } else {
             let pkg = resources;
             let assetUrl = this.url;
@@ -469,14 +449,8 @@ export class GLoader extends GObject {
                     console.error(`bundle '${pkgName}' not found`);
                     return;
                 }
-                pkg.load(assetUrl, Asset, callback);
-            } else {
-                 //如果有设置远程包 从远程包加载
-                if (this.bundle && assetManager.bundles.has(this.bundle)) {
-                    pkg = assetManager.getBundle(this.bundle);
-                }
-                pkg.load(this._url + "/spriteFrame", Asset, callback);
             }
+            pkg.load(assetUrl, Asset, callback);
         }
     }
 
@@ -527,6 +501,7 @@ export class GLoader extends GObject {
     protected onExternalLoadSuccess(texture: SpriteFrame): void {
         this._content.spriteFrame = texture;
         this._content.type = Sprite.Type.SIMPLE;
+
         //如果裁剪掉透明像素会导致 有空白边的图片 跟编辑器不一致。
         // this.sourceWidth = texture.getRect().width;
         // this.sourceHeight = texture.getRect().height;
@@ -592,7 +567,7 @@ export class GLoader extends GObject {
             this.setSize(cw, ch);
             this._updatingLayout = false;
 
-            this._container._uiProps.uiTransformComp.setContentSize(this._width, this._height);
+            this._containerUITrans.setContentSize(this._width, this._height);
             this._container.setPosition(pivotCorrectX, pivotCorrectY);
             if (this._content2) {
                 this._content2.setPosition(pivotCorrectX + this._width * this.pivotX, pivotCorrectY - this._height * this.pivotY);
@@ -635,7 +610,7 @@ export class GLoader extends GObject {
             }
         }
 
-        this._container._uiProps.uiTransformComp.setContentSize(cw, ch);
+        this._containerUITrans.setContentSize(cw, ch);
         if (this._content2) {
             this._content2.setPosition(pivotCorrectX + this._width * this.pivotX, pivotCorrectY - this._height * this.pivotY);
             this._content2.setScale(sx, sy);
