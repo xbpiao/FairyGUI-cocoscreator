@@ -4,8 +4,12 @@
   /* Add your custom configuration here. */
   "compilerOptions": {
     "allowSyntheticDefaultImports": true, // 需要开启
-    "strict": false
+<<<<<<< HEAD
   },
   "include": ["./assets/**/*.ts", "../source/dist/fairygui.d.ts"], 
   "exclude": ["node_modules", "library", "local", "temp", "build", "settings", "UIProject", "profiles"]
+=======
+    "strict": false
+  }
+>>>>>>> c4f70b9 (尝试添加clone功能)
 }
