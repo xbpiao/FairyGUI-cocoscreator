@@ -35,15 +35,16 @@ export class ScrollPane extends Component {
     private _needRefresh: boolean;
     private _refreshBarAxis: AxisType;
 
-    private _displayOnLeft?: boolean;
-    private _snapToItem?: boolean;
-    private _snappingPolicy?: number;
-    public _displayInDemand?: boolean;
+    private _displayOnLeft: boolean;
+    private _snapToItem: boolean;
+    private _snappingPolicy: number;
+    public _displayInDemand: boolean;
     private _mouseWheelEnabled: boolean;
-    private _pageMode?: boolean;
+    private _pageMode: boolean;
     private _inertiaDisabled?: boolean;
-    private _floating?: boolean;
-    private _dontClipMargin?: boolean;
+    private _floating: boolean;
+    private _dontClip: boolean;
+    private _dontClipMargin: boolean;
 
     private _xPos: number;
     private _yPos: number;
@@ -74,12 +75,12 @@ export class ScrollPane extends Component {
     private _tweenStart: Vec2;
     private _tweenChange: Vec2;
 
-    private _pageController?: Controller;
+    private _pageController: Controller;
 
-    private _hzScrollBar?: GScrollBar;
-    private _vtScrollBar?: GScrollBar;
-    private _header?: GComponent;
-    private _footer?: GComponent;
+    private _hzScrollBar: GScrollBar;
+    private _vtScrollBar: GScrollBar;
+    private _header: GComponent;
+    private _footer: GComponent;
 
     public static draggingPane: ScrollPane;
 
@@ -159,9 +160,12 @@ export class ScrollPane extends Component {
         else
             this._bouncebackEffect = UIConfig.defaultScrollBounceEffect;
         if ((flags & 256) != 0) this._inertiaDisabled = true;
-        if ((flags & 512) == 0) this._maskContainer.addComponent(Mask);
+        if ((flags & 512) != 0) this._dontClip = true;
         if ((flags & 1024) != 0) this._floating = true;
         if ((flags & 2048) != 0) this._dontClipMargin = true;
+
+        if (!this._dontClip)
+            this._maskContainer.addComponent(Mask);
 
         if (scrollBarDisplay == ScrollBarDisplayType.Default)
             scrollBarDisplay = UIConfig.defaultScrollBarDisplay;
@@ -258,7 +262,19 @@ export class ScrollPane extends Component {
                 return target;
         }
 
-        return this._owner;
+        if (this._dontClip)
+            return this._owner;
+        else if (this._dontClipMargin) {
+            if (pt.x >= 0 && pt.y >= 0 && pt.x < this._owner.width && pt.y < this._owner.height)
+                return this._owner;
+        }
+        else {
+            if (pt.x >= this._owner.margin.left && pt.y >= this._owner.margin.top
+                && pt.x < this._owner.margin.left + this._viewSize.x && pt.y < this._owner.margin.top + this._viewSize.y)
+                return this._owner;
+        }
+
+        return null;
     }
 
     public get owner(): GComponent {
