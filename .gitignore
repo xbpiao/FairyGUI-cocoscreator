@@ -6,3 +6,4 @@ demo/native
 demo/profiles
 source/build
 source/dist
+package-lock.json

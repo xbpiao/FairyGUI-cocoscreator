@@ -2,7 +2,7 @@
   "name": "NewCocosProject",
   "uuid": "c30b28da-749e-479b-bcb6-cecd8d7be9e3",
   "creator": {
-    "version": "3.8.2"
+    "version": "3.8.8"
   },
   "dependencies": {
     "fairygui-cc": "latest"

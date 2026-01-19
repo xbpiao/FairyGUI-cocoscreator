@@ -3,7 +3,8 @@
   "script": {
     "useDefineForClassFields": false,
     "allowDeclareFields": false,
-    "preserveSymlinks": true
+    "preserveSymlinks": true,
+    "importMap": "project://import-map.json"
   },
   "general": {
     "designResolution": {
