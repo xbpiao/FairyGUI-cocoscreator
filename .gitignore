@@ -1,1 +1,9 @@
+node_modules
 .DS_Store
+demo/UIProject/.objs
+demo/scripting
+demo/native
+demo/profiles
+source/build
+source/dist
+package-lock.json

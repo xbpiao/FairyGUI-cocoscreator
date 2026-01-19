@@ -157,7 +157,7 @@ export class ByteBuffer {
     public readBuffer(): ByteBuffer {
         var count: number = this.readUint();
         this.validate(count);
-        var ba: ByteBuffer = new ByteBuffer(this._bytes.buffer, this._bytes.byteOffset + this._pos, count);
+        var ba: ByteBuffer = new ByteBuffer(this._bytes.buffer as ArrayBuffer, this._bytes.byteOffset + this._pos, count);
         ba.stringTable = this.stringTable;
         ba.version = this.version;
         this._pos += count;
