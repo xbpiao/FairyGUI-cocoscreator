@@ -7,6 +7,7 @@
     "strictNullChecks": false,
     "moduleResolution": "Node",
     "skipLibCheck": true,
+    "outDir": "./build"
   },
   "include": [
     "./src/**/*",
