@@ -4,5 +4,11 @@
   /* Add your custom configuration here. */
   "compilerOptions": {
     "allowSyntheticDefaultImports": true, // 需要开启
+    "paths": {
+        "fairygui-cc": ["../source/dist/fairygui.min.mjs"]
+    },
+    "types": [
+      "../source/dist/fairygui.d.ts"
+    ]
   }
 }
