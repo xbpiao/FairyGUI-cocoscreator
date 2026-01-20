@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Cocos Creator Launch Chrome against localhost",
+            "url": "http://localhost:7456",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "preLaunchTask": "Cocos Creator compile",
+            "internalConsoleOptions": "openOnSessionStart",
+            // 可以映射一些路径方便查看堆栈，但无法断点(还是通过建目录link断点方便)
+            // ln -s /Applications/Cocos/Creator/3.8.2_121206/CocosCreator.app/Contents/Resources/resources/3d/engine ./scripting
+            // mklink /d /j D:\work\github\FairyGUI-cocoscreator\demo\scripting\engine D:\dev\CreatorEditor\Creator\3.8.8\resources\resources\3d\engine
+            "pathMapping": {
+            //     "/scripting/engine": "D:/secure/dev/cocos/editors/Creator/3.8.0/resources/resources/3d/engine",
+                "/scripting/systemjs": "${workspaceFolder}/temp/programming/preview/systemjs"
+            },
+        },
+         {
+            "name": "Attach_Inspector",            
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "localRoot": "${workspaceFolder}/build/windows/proj/Debug/Resources/",
+            "remoteRoot": "/",
+            "address": "localhost",
+            "port": 6086,
+            "autoAttachChildProcesses": false,
+            // 参考：https://docs.cocos.com/creator/manual/zh/editor/publish/debug-jsb.html
+            // devtools://devtools/bundled/js_app.html?v8only=true&ws=127.0.0.1:6086/00010002-0003-4004-8005-000600070008
+            // nodejs参考：https://code.visualstudio.com/docs/nodejs/nodejs-debugging
+            "websocketAddress": "ws://127.0.0.1:6086/00010002-0003-4004-8005-000600070008",
+            "sourceMaps": true,
+            "sourceMapPathOverrides": {
+                "<node_internals>/*": "${workspaceFolder}/build/windows/proj/Debug/Resources/*",
+                "assets/main/index.js": "file:///${workspaceFolder}/build/windows/proj/Debug/Resources/assets/main/index.js.map",
+                "src/cocos-js/cc.js": "file:///${workspaceFolder}/build/windows/proj/Debug/Resources/src/cocos-js/cc.js.map"
+            }
+        }
+    ]
+}

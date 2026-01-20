@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Cocos Creator compile",
+            "command": "curl",
+            "args": [
+                "http://localhost:7456/asset-db/refresh"
+            ],
+            "type": "shell",
+            "isBackground": true,
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": {
+                "owner": "typescript",
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*", // 任务启动即开始匹配
+                    "endsPattern": ".*success.*" // 匹配命令执行完后的 echo 内容
+                },
+                "pattern": {
+                    "regexp": "none" // 因为 curl 不是编译器，通常不需要提取错误列表
+                }
+            }
+        }
+    ]
+}
